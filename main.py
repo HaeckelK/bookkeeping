@@ -49,43 +49,33 @@ class PandasLedger(Ledger):
             return 0
         return next_id
 
+    def append(self, df):
+        self.df = self.df.append(df, ignore_index=True, sort=False)
+        return
 
-class BankLedger:
+
+class BankLedger(PandasLedger):
     def __init__(self) -> None:
         self.columns = ['raw_id', 'batch_id', 'bank_code', 'Date', 'Transaction type', 'Description',
                         'Amount', 'Transfer Type', "gl_jnl"]
         self.df = pd.DataFrame(columns=self.columns)
         return
 
-    def get_next_batch_id(self) -> int:
-        try:
-            next_id = int(self.df["batch_id"].max())
-        except ValueError:
-            return 0
-        return next_id
-
     def add_transactions(self, transactions, bank_code: str):
         df = transactions.copy()
         df['batch_id'] = self.get_next_batch_id()
         df["bank_code"] = bank_code
         df["gl_jnl"] = False
-        self.df = self.df.append(df, ignore_index=True, sort=False)
+        self.append(df)
         return
 
 
-class PurchaseLedger:
+class PurchaseLedger(PandasLedger):
     def __init__(self) -> None:
         self.columns = ['raw_id', 'batch_id', 'entry_type', 'Creditor', 'Date', 'Amount', 'Notes',
                                         'gl_jnl', 'settled']
         self.df = pd.DataFrame(columns=self.columns)
         return
-
-    def get_next_batch_id(self) -> int:
-        try:
-            next_id = int(self.df["batch_id"].max())
-        except ValueError:
-            return 0
-        return next_id
 
     def add_settled_transcations(self, settled_invoices, bank_code: str):
         batch_id = self.get_next_batch_id()
@@ -95,7 +85,7 @@ class PurchaseLedger:
         df['Notes'] = f'bank payment {bank_code}'
         df["gl_jnl"] = False
         df["settled"] = True
-        self.df = self.df.append(df[self.columns], ignore_index=True, sort=False)
+        self.append(df)
 
         df = settled_invoices.copy()
         df['batch_id'] = batch_id
@@ -103,7 +93,7 @@ class PurchaseLedger:
         df['entry_type'] = 'purchase_invoice'
         df["gl_jnl"] = False
         df["settled"] = True
-        self.df = self.df.append(df[self.columns], ignore_index=True, sort=False)
+        self.append(df)
         return
 
     def add_payments(self, payments):
@@ -115,7 +105,7 @@ class PurchaseLedger:
         df["gl_jnl"] = False
         df["settled"] = False
         df = df.drop(labels="Bank", axis=1)
-        self.df = self.df.append(df[self.columns], ignore_index=True, sort=False)
+        self.append(df)
         return
 
 
