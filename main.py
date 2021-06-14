@@ -28,10 +28,21 @@ class SourceDataParser:
         df = df.loc[(df['Creditor'].notnull()) & (df['PL'].notnull())]
         return df
 
-    def get_unmatched_creditor_payments(self):
+    def get_settled_sales_invoices(self):
+        df = self.df[['raw_id', 'Date', 'Amount', 'Debtor', 'PL', 'Notes']]
+        df = df.loc[(df['Debtor'].notnull()) & (df['PL'].notnull())]
+        return df
+
+    def get_unmatched_payments(self):
         df = self.df.copy()
         df = df.loc[(df['Creditor'].notnull()) & (df['PL'].isnull()) & (df['BS'].isnull())]
         df = df[['raw_id', 'Date', 'Amount', 'Creditor', 'Notes', 'Bank']]
+        return df
+
+    def get_unmatched_receipts(self):
+        df = self.df.copy()
+        df = df.loc[(df['Debtor'].notnull()) & (df['PL'].isnull()) & (df['BS'].isnull())]
+        df = df[['raw_id', 'Date', 'Amount', 'Debtor', 'Notes', 'Bank']]
         return df
 
 
@@ -109,11 +120,53 @@ class PurchaseLedger(PandasLedger):
         return
 
 
+# TODO parent calss for SalesLedger, PurchaseLedger
+class SalesLedger(PandasLedger):
+    def __init__(self) -> None:
+        self.columns = ['raw_id', 'batch_id', 'entry_type', 'Debtor', 'Date', 'Amount', 'Notes',
+                                        'gl_jnl', 'settled']
+        self.df = pd.DataFrame(columns=self.columns)
+        return
+
+    def add_settled_transcations(self, settled_invoices, bank_code: str):
+        batch_id = self.get_next_batch_id()
+        df = settled_invoices.copy()
+        df['batch_id'] = batch_id
+        df['entry_type'] = 'bank_receipt'
+        df['Amount'] = -df['Amount']
+        df['Notes'] = f'bank receipt {bank_code}'
+        df["gl_jnl"] = False
+        df["settled"] = True
+        self.append(df)
+
+        df = settled_invoices.copy()
+        df['batch_id'] = batch_id
+        df['entry_type'] = 'sale_invoice'
+        df["gl_jnl"] = False
+        df["settled"] = True
+        self.append(df)
+        return
+
+    def add_receipts(self, payments):
+        batch_id = self.get_next_batch_id()
+        df = payments.copy()
+        df['batch_id'] = batch_id
+        df['entry_type'] = 'bank_receipt'
+        df['Notes'] = 'bank receipt ' + df['Bank']
+        df["gl_jnl"] = False
+        df["settled"] = False
+        df = df.drop(labels="Bank", axis=1)
+        self.append(df)
+        return
+
+
+
 def main():
     data_loader = SourceDataLoader()
     parser = SourceDataParser()
     bank_ledger = BankLedger()
     purchase_ledger = PurchaseLedger()
+    sales_ledger = SalesLedger()
 
     print("Bookkeeping Demo")
     print("Load source excel")
@@ -122,16 +175,22 @@ def main():
 
     bank_transactions = parser.get_bank_transactions()
     settled_invoices = parser.get_settled_invoices()
-    unmatched_creditor_payments = parser.get_unmatched_creditor_payments()
+    settled_sales_invoices = parser.get_settled_sales_invoices()
+    unmatched_payments = parser.get_unmatched_payments()
+    unmatched_receipts = parser.get_unmatched_receipts()
 
     # TODO do this in batches
     bank_ledger.add_transactions(bank_transactions, bank_code="nwa_ca")
 
     purchase_ledger.add_settled_transcations(settled_invoices, bank_code="nwa_ca")
-    purchase_ledger.add_payments(unmatched_creditor_payments)
+    purchase_ledger.add_payments(unmatched_payments)
+
+    sales_ledger.add_settled_transcations(settled_sales_invoices, bank_code="nwa_ca")
+    sales_ledger.add_receipts(unmatched_receipts)
 
     bank_ledger.df.to_csv("data/bank_ledger.csv", index=False)
     purchase_ledger.df.to_csv("data/purchase_ledger.csv", index=False)
+    sales_ledger.df.to_csv("data/sales_ledger.csv", index=False)
     return
 
 
