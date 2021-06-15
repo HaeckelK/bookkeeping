@@ -1,9 +1,10 @@
 from dataclasses import dataclass, asdict
 from typing import List
+from abc import ABC, abstractmethod
 
 import pandas as pd
 
-from ledger import PandasLedger
+from ledger import PandasLedger, Ledger
 
 @dataclass
 class RawBankTransaction:
@@ -16,7 +17,13 @@ class RawBankTransaction:
     date: str
 
 
-class BankLedger(PandasLedger):
+class BankLedger(Ledger):
+    @abstractmethod
+    def add_transactions(self, transactions: List[RawBankTransaction]):
+        """"""
+
+
+class InMemoryBankLedger(BankLedger, PandasLedger):
     def __init__(self) -> None:
         self.columns = [
             "transaction_id",

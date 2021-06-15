@@ -4,7 +4,7 @@ from typing import List
 import pandas as pd
 
 from ledger import PandasLedger
-from bank import BankLedger, RawBankTransaction
+from bank import InMemoryBankLedger, RawBankTransaction
 
 
 class SourceDataLoader:
@@ -330,7 +330,7 @@ class InterLedgerJournalCreator:
 def main():
     data_loader = SourceDataLoader()
     parser = SourceDataParser()
-    bank_ledger = BankLedger()
+    bank_ledger = InMemoryBankLedger()
     purchase_ledger = PurchaseLedger()
     sales_ledger = SalesLedger()
     general_ledger = GeneralLedger()
