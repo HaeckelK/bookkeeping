@@ -54,6 +54,10 @@ class Ledger(ABC):
     def get_next_batch_id(self) -> int:
         """Return next available batch id."""
 
+    @abstractmethod
+    def get_next_transaction_id(self) -> int:
+        """Return next available transaction id."""
+
 
 class PandasLedger(Ledger):
     def get_next_batch_id(self) -> int:
@@ -64,13 +68,22 @@ class PandasLedger(Ledger):
         return next_id
 
     def append(self, df):
+        next_id = self.get_next_transaction_id()
+        df['transaction_id'] = np.arange(start=next_id, stop=next_id+df.shape[0])
         self.df = self.df.append(df[self.columns], ignore_index=True, sort=False)
         return
+
+    def get_next_transaction_id(self) -> int:
+        try:
+            next_id = int(self.df["transaction_id"].max()) + 1
+        except ValueError:
+            return 0
+        return next_id
 
 
 class BankLedger(PandasLedger):
     def __init__(self) -> None:
-        self.columns = ['raw_id', 'batch_id', 'bank_code', 'Date', 'Transaction type', 'Description',
+        self.columns = ['transaction_id', 'raw_id', 'batch_id', 'bank_code', 'Date', 'Transaction type', 'Description',
                         'Amount', 'Transfer Type', "gl_jnl"]
         self.df = pd.DataFrame(columns=self.columns)
         return
@@ -122,7 +135,7 @@ class SalesInvoice:
 
 class PurchaseLedger(PandasLedger):
     def __init__(self) -> None:
-        self.columns = ['raw_id', 'batch_id', 'entry_type', 'Creditor', 'Date', 'Amount', 'Notes',
+        self.columns = ['transaction_id', 'raw_id', 'batch_id', 'entry_type', 'Creditor', 'Date', 'Amount', 'Notes',
                         'gl_jnl', 'settled', 'PL']
         self.df = pd.DataFrame(columns=self.columns)
         return
@@ -130,11 +143,13 @@ class PurchaseLedger(PandasLedger):
     def add_settled_transcations(self, settled_invoices, bank_code: str):
         batch_id = self.get_next_batch_id()
         df = settled_invoices.copy()
+        
         df['batch_id'] = batch_id
         df['entry_type'] = 'bank_payment'
         df['Notes'] = f'bank payment {bank_code}'
         df["gl_jnl"] = False
         df["settled"] = True
+        
         self.append(df)
 
         df = settled_invoices.copy()
@@ -182,7 +197,7 @@ class PurchaseLedger(PandasLedger):
 # TODO parent calss for SalesLedger, PurchaseLedger
 class SalesLedger(PandasLedger):
     def __init__(self) -> None:
-        self.columns = ['raw_id', 'batch_id', 'entry_type', 'Debtor', 'Date', 'Amount', 'Notes',
+        self.columns = ['transaction_id', 'raw_id', 'batch_id', 'entry_type', 'Debtor', 'Date', 'Amount', 'Notes',
                         'gl_jnl', 'settled', 'PL']
         self.df = pd.DataFrame(columns=self.columns)
         return
@@ -259,13 +274,6 @@ class GeneralLedger(PandasLedger):
         self.df = pd.DataFrame(columns=self.columns)
         return
 
-    def get_next_transaction_id(self) -> int:
-        try:
-            next_id = int(self.df["transaction_id"].max()) + 1
-        except ValueError:
-            return 0
-        return next_id
-
     def get_next_journal_id(self) -> int:
         try:
             next_id = int(self.df["jnl_id"].max()) + 1
@@ -276,8 +284,6 @@ class GeneralLedger(PandasLedger):
     def add_journal(self, journal: GLJournal) -> None:
         df = pd.DataFrame([asdict(x) for x in journal.lines])
         df["jnl_type"] = journal.jnl_type
-        next_id = self.get_next_transaction_id()
-        df['transaction_id'] = np.arange(start=next_id, stop=next_id+df.shape[0])
         df['jnl_id'] = self.get_next_journal_id()
         self.append(df)
         return
