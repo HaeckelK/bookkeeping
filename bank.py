@@ -17,6 +17,13 @@ class RawBankTransaction:
     date: str
 
 
+@dataclass
+class BankTransaction(RawBankTransaction):
+    transaction_id: int
+    batch_id: int
+    gl_jnl: bool
+
+
 class BankLedger(Ledger):
     @abstractmethod
     def add_transactions(self, transactions: List[RawBankTransaction]):
