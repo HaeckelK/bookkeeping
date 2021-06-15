@@ -29,6 +29,10 @@ class BankLedger(Ledger):
     def add_transactions(self, transactions: List[RawBankTransaction]):
         """"""
 
+    @abstractmethod
+    def list_transactions(self) -> List[BankTransaction]:
+        """"""
+
 
 class InMemoryBankLedger(BankLedger, PandasLedger):
     def __init__(self) -> None:
@@ -53,3 +57,6 @@ class InMemoryBankLedger(BankLedger, PandasLedger):
         df["gl_jnl"] = False
         self.append(df)
         return
+
+    def list_transactions(self) -> List[BankTransaction]:
+        return [BankTransaction(**x) for x in self.df.to_dict("records")]

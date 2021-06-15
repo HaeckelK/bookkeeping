@@ -1,10 +1,11 @@
 from dataclasses import dataclass, asdict
 from typing import List
+from abc import ABC, abstractmethod
 
 import pandas as pd
 
 from ledger import PandasLedger
-from bank import InMemoryBankLedger, RawBankTransaction
+from bank import BankLedger, InMemoryBankLedger, RawBankTransaction
 
 
 class SourceDataLoader:
@@ -327,6 +328,20 @@ class InterLedgerJournalCreator:
         return [journal]
 
 
+class ReportWriter(ABC):
+    @abstractmethod
+    def write_bank_ledger(self, ledger: BankLedger):
+        """"""
+
+
+class CSVReportWriter(ReportWriter):
+    def write_bank_ledger(self, ledger: BankLedger):
+        transactions = ledger.list_transactions()
+        df = pd.DataFrame([asdict(x) for x in transactions])
+        df.to_csv("data/bank_ledger.csv", index=False)
+        return
+
+
 def main():
     data_loader = SourceDataLoader()
     parser = SourceDataParser()
@@ -335,6 +350,7 @@ def main():
     sales_ledger = SalesLedger()
     general_ledger = GeneralLedger()
     inter_ledger_jnl_creator = InterLedgerJournalCreator()
+    report_writer = CSVReportWriter()
 
     print("Bookkeeping Demo")
     print("Load source excel")
@@ -347,7 +363,6 @@ def main():
     unmatched_payments = parser.get_unmatched_payments()
     unmatched_receipts = parser.get_unmatched_receipts()
 
-    # TODO do this in batches
     bank_ledger.add_transactions(bank_transactions)
 
     purchase_ledger.add_settled_transcations(settled_invoices, bank_code="nwa_ca")
@@ -368,7 +383,7 @@ def main():
 
     print(general_ledger.df)
 
-    bank_ledger.df.to_csv("data/bank_ledger.csv", index=False)
+    report_writer.write_bank_ledger(bank_ledger)
     purchase_ledger.df.to_csv("data/purchase_ledger.csv", index=False)
     sales_ledger.df.to_csv("data/sales_ledger.csv", index=False)
     general_ledger.df.to_csv("data/general_ledger.csv", index=False)
