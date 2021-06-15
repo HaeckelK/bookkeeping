@@ -84,6 +84,24 @@ class BankLedger(PandasLedger):
         return
 
 
+@dataclass
+class PurchaseInvoiceLine:
+    nominal: str
+    description: str
+    amount: int
+    transaction_date: str
+
+
+@dataclass
+class PurchaseInvoice:
+    creditor: str
+    lines: List[PurchaseInvoiceLine]
+
+    @property
+    def total(self) -> int:
+        return sum(x.amount for x in self.lines)
+
+
 class PurchaseLedger(PandasLedger):
     def __init__(self) -> None:
         self.columns = ['raw_id', 'batch_id', 'entry_type', 'Creditor', 'Date', 'Amount', 'Notes',
@@ -121,6 +139,19 @@ class PurchaseLedger(PandasLedger):
         df = df.drop(labels="Bank", axis=1)
         self.append(df)
         return
+
+    def get_unposted_invoices(self) -> List[PurchaseInvoice]:
+        invoice1 = PurchaseInvoice(creditor="abc ltd",
+                                   lines=[PurchaseInvoiceLine(nominal="bills",
+                                                              description="some change from abc ltd",
+                                                              amount=100,
+                                                              transaction_date="XYZ")])
+        invoice2 = PurchaseInvoice(creditor="def ltd",
+                                   lines=[PurchaseInvoiceLine(nominal="mobile",
+                                                              description="some change from def ltd",
+                                                              amount=52,
+                                                              transaction_date="XYZ")])
+        return [invoice1, invoice2]
 
 
 # TODO parent calss for SalesLedger, PurchaseLedger
@@ -207,6 +238,28 @@ class GeneralLedger(PandasLedger):
         return
 
 
+class PurchaseToGLJournalCreator:
+    def create_journals(self, purchase_ledger: PurchaseLedger) -> List[GLJournal]:
+        unposted_invoices = purchase_ledger.get_unposted_invoices()
+        total = sum(x.total for x in unposted_invoices)
+
+        gl_lines = [GLJournalLine(nominal="puchase_ledger_control_account",
+                                  description="some auto generated description",
+                                  amount=-total,
+                                  transaction_date='TODAY')]
+        for invoice in unposted_invoices:
+            for line in invoice.lines:
+                gl_line = GLJournalLine(nominal=line.nominal,
+                                        description=line.description,
+                                        amount=line.amount,
+                                        transaction_date=line.transaction_date)
+                gl_lines.append(gl_line)
+
+        journal = GLJournal(jnl_type="pi", lines=gl_lines)    
+
+        return [journal]
+
+
 def main():
     data_loader = SourceDataLoader()
     parser = SourceDataParser()
@@ -214,6 +267,7 @@ def main():
     purchase_ledger = PurchaseLedger()
     sales_ledger = SalesLedger()
     general_ledger = GeneralLedger()
+    pl_to_gl_jnl_creator = PurchaseToGLJournalCreator()
 
     print("Bookkeeping Demo")
     print("Load source excel")
@@ -234,6 +288,10 @@ def main():
 
     sales_ledger.add_settled_transcations(settled_sales_invoices, bank_code="nwa_ca")
     sales_ledger.add_receipts(unmatched_receipts)
+
+    journals = pl_to_gl_jnl_creator.create_journals(purchase_ledger)
+    for journal in journals:
+        general_ledger.add_journal(journal)
 
     journal_lines = [GLJournalLine(nominal="purchase_control_account",
                                   description="some description",
