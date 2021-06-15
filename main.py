@@ -290,15 +290,14 @@ class GeneralLedger(PandasLedger):
 
 
 class InterLedgerJournalCreator:
-    def create_pl_to_gl_journals(self, purchase_ledger: PurchaseLedger) -> List[GLJournal]:
-        unposted_invoices = purchase_ledger.get_unposted_invoices()
-        total = sum(x.total for x in unposted_invoices)
+    def create_pl_to_gl_journals(self, invoices: List[PurchaseInvoice]) -> List[GLJournal]:
+        total = sum(x.total for x in invoices)
 
         gl_lines = [GLJournalLine(nominal="puchase_ledger_control_account",
                                   description="some auto generated description",
                                   amount=-total,
                                   transaction_date='TODAY')]
-        for invoice in unposted_invoices:
+        for invoice in invoices:
             for line in invoice.lines:
                 gl_line = GLJournalLine(nominal=line.nominal,
                                         description=line.description,
@@ -311,15 +310,14 @@ class InterLedgerJournalCreator:
         return [journal]
 
     # TODO DRY see create_pl_to_gl_journals
-    def create_sl_to_gl_journals(self, sales_ledger: SalesLedger) -> List[GLJournal]:
-        unposted_invoices = sales_ledger.get_unposted_invoices()
-        total = sum(x.total for x in unposted_invoices)
+    def create_sl_to_gl_journals(self, invoices: List[PurchaseInvoice]) -> List[GLJournal]:
+        total = sum(x.total for x in invoices)
 
         gl_lines = [GLJournalLine(nominal="sales_ledger_control_account",
                                   description="some auto generated description",
                                   amount=-total,
                                   transaction_date='TODAY')]
-        for invoice in unposted_invoices:
+        for invoice in invoices:
             for line in invoice.lines:
                 gl_line = GLJournalLine(nominal=line.nominal,
                                         description=line.description,
@@ -361,12 +359,12 @@ def main():
     sales_ledger.add_settled_transcations(settled_sales_invoices, bank_code="nwa_ca")
     sales_ledger.add_receipts(unmatched_receipts)
 
-    journals = inter_ledger_jnl_creator.create_pl_to_gl_journals(purchase_ledger)
+    journals = inter_ledger_jnl_creator.create_pl_to_gl_journals(purchase_ledger.get_unposted_invoices())
     for journal in journals:
         general_ledger.add_journal(journal)
         # TODO update purchase_ledger that these have been added to gl
 
-    journals = inter_ledger_jnl_creator.create_sl_to_gl_journals(sales_ledger)
+    journals = inter_ledger_jnl_creator.create_sl_to_gl_journals(sales_ledger.get_unposted_invoices())
     for journal in journals:
         general_ledger.add_journal(journal)
         # TODO update sales_ledger that these have been added to gl
