@@ -64,7 +64,7 @@ class PandasLedger(Ledger):
         return next_id
 
     def append(self, df):
-        self.df = self.df.append(df, ignore_index=True, sort=False)
+        self.df = self.df.append(df[self.columns], ignore_index=True, sort=False)
         return
 
 
@@ -105,7 +105,7 @@ class PurchaseInvoice:
 class PurchaseLedger(PandasLedger):
     def __init__(self) -> None:
         self.columns = ['raw_id', 'batch_id', 'entry_type', 'Creditor', 'Date', 'Amount', 'Notes',
-                                        'gl_jnl', 'settled']
+                        'gl_jnl', 'settled', 'PL']
         self.df = pd.DataFrame(columns=self.columns)
         return
 
@@ -136,22 +136,29 @@ class PurchaseLedger(PandasLedger):
         df['Notes'] = 'bank payment ' + df['Bank']
         df["gl_jnl"] = False
         df["settled"] = False
+        df["PL"] = None
         df = df.drop(labels="Bank", axis=1)
         self.append(df)
         return
 
     def get_unposted_invoices(self) -> List[PurchaseInvoice]:
-        invoice1 = PurchaseInvoice(creditor="abc ltd",
-                                   lines=[PurchaseInvoiceLine(nominal="bills",
-                                                              description="some change from abc ltd",
-                                                              amount=100,
-                                                              transaction_date="XYZ")])
-        invoice2 = PurchaseInvoice(creditor="def ltd",
-                                   lines=[PurchaseInvoiceLine(nominal="mobile",
-                                                              description="some change from def ltd",
-                                                              amount=52,
-                                                              transaction_date="XYZ")])
-        return [invoice1, invoice2]
+        df = self.df.copy()
+        df = df.loc[(df['gl_jnl'] == False) & (df['entry_type'] == 'purchase_invoice')]
+        invoices = []
+        for invoice in df.to_dict('records'):
+            credtior = invoice["Creditor"]
+            nominal = invoice["PL"]
+            description = invoice["Notes"]
+            amount = -invoice["Amount"]
+            transaction_date = invoice["Date"]
+
+            purchase_invoice = PurchaseInvoice(creditor=credtior,
+                                        lines=[PurchaseInvoiceLine(nominal=nominal,
+                                                                    description=description,
+                                                                    amount=amount,
+                                                                    transaction_date=transaction_date)])
+            invoices.append(purchase_invoice)
+        return invoices
 
 
 # TODO parent calss for SalesLedger, PurchaseLedger
@@ -292,18 +299,8 @@ def main():
     journals = pl_to_gl_jnl_creator.create_journals(purchase_ledger)
     for journal in journals:
         general_ledger.add_journal(journal)
+        # TODO update purchase_ledger that these have been added to gl
 
-    journal_lines = [GLJournalLine(nominal="purchase_control_account",
-                                  description="some description",
-                                  amount=-999,
-                                  transaction_date="XYZ"),
-                     GLJournalLine(nominal="gym",
-                                  description="some gym cost",
-                                  amount=999,
-                                  transaction_date="XYZ")]
-    journal = GLJournal(jnl_type="si", lines=journal_lines)
-    general_ledger.add_journal(journal)
-    general_ledger.add_journal(journal)
     print(general_ledger.df)
 
 
