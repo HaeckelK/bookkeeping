@@ -4,14 +4,14 @@ from typing import List
 import pandas as pd
 
 from ledger import PandasLedger
-from bank import BankLedger
+from bank import BankLedger, RawBankTransaction
 
 
 class SourceDataLoader:
     def load(self, filename: str, sheetname: str):
         df = pd.read_excel(filename, sheet_name=sheetname, index_col=None)
-        df["Amount"] = df["Amount"] * 100
-        df = df.astype({"Amount": "int32"})
+        df["amount"] = df["amount"] * 100
+        df = df.astype({"amount": "int32"})
         df.insert(0, "raw_id", range(0, 0 + len(df)))
         # df = df.set_index('raw_id')
         return df
@@ -22,31 +22,35 @@ class SourceDataParser:
         self.df = df
         return
 
-    def get_bank_transactions(self):
-        # TODO return dictionary where key is bank_code
-        bank = self.df[["Date", "Transaction type", "Description", "Amount", "Transfer Type", "raw_id"]]
-        return bank
+    def get_bank_transactions(self) -> List[RawBankTransaction]:
+        df = self.df[["date", "transaction_type", "description", "amount", "transfer_type", "raw_id", "bank"]]
+        lines = []
+        for transaction in df.to_dict("records"):
+            transaction["bank_code"] = transaction["bank"]
+            del transaction["bank"]
+            lines.append(RawBankTransaction(**transaction))
+        return lines
 
     def get_settled_invoices(self):
-        df = self.df[["raw_id", "Date", "Amount", "Creditor", "PL", "Notes"]]
+        df = self.df[["raw_id", "date", "amount", "Creditor", "PL", "Notes"]]
         df = df.loc[(df["Creditor"].notnull()) & (df["PL"].notnull())]
         return df
 
     def get_settled_sales_invoices(self):
-        df = self.df[["raw_id", "Date", "Amount", "Debtor", "PL", "Notes"]]
+        df = self.df[["raw_id", "date", "amount", "Debtor", "PL", "Notes"]]
         df = df.loc[(df["Debtor"].notnull()) & (df["PL"].notnull())]
         return df
 
     def get_unmatched_payments(self):
         df = self.df.copy()
         df = df.loc[(df["Creditor"].notnull()) & (df["PL"].isnull()) & (df["BS"].isnull())]
-        df = df[["raw_id", "Date", "Amount", "Creditor", "Notes", "Bank"]]
+        df = df[["raw_id", "date", "amount", "Creditor", "Notes", "bank"]]
         return df
 
     def get_unmatched_receipts(self):
         df = self.df.copy()
         df = df.loc[(df["Debtor"].notnull()) & (df["PL"].isnull()) & (df["BS"].isnull())]
-        df = df[["raw_id", "Date", "Amount", "Debtor", "Notes", "Bank"]]
+        df = df[["raw_id", "date", "amount", "Debtor", "Notes", "bank"]]
         return df
 
 
@@ -94,8 +98,8 @@ class PurchaseLedger(PandasLedger):
             "batch_id",
             "entry_type",
             "Creditor",
-            "Date",
-            "Amount",
+            "date",
+            "amount",
             "Notes",
             "gl_jnl",
             "settled",
@@ -118,7 +122,7 @@ class PurchaseLedger(PandasLedger):
 
         df = settled_invoices.copy()
         df["batch_id"] = batch_id
-        df["Amount"] = -df["Amount"]
+        df["amount"] = -df["amount"]
         df["entry_type"] = "purchase_invoice"
         df["gl_jnl"] = False
         df["settled"] = True
@@ -130,11 +134,11 @@ class PurchaseLedger(PandasLedger):
         df = payments.copy()
         df["batch_id"] = batch_id
         df["entry_type"] = "bank_payment"
-        df["Notes"] = "bank payment " + df["Bank"]
+        df["Notes"] = "bank payment " + df["bank"]
         df["gl_jnl"] = False
         df["settled"] = False
         df["PL"] = None
-        df = df.drop(labels="Bank", axis=1)
+        df = df.drop(labels="bank", axis=1)
         self.append(df)
         return
 
@@ -146,8 +150,8 @@ class PurchaseLedger(PandasLedger):
             credtior = invoice["Creditor"]
             nominal = invoice["PL"]
             description = invoice["Notes"]
-            amount = -invoice["Amount"]
-            transaction_date = invoice["Date"]
+            amount = -invoice["amount"]
+            transaction_date = invoice["date"]
 
             purchase_invoice = PurchaseInvoice(
                 creditor=credtior,
@@ -170,8 +174,8 @@ class SalesLedger(PandasLedger):
             "batch_id",
             "entry_type",
             "Debtor",
-            "Date",
-            "Amount",
+            "date",
+            "amount",
             "Notes",
             "gl_jnl",
             "settled",
@@ -185,7 +189,7 @@ class SalesLedger(PandasLedger):
         df = settled_invoices.copy()
         df["batch_id"] = batch_id
         df["entry_type"] = "bank_receipt"
-        df["Amount"] = -df["Amount"]
+        df["amount"] = -df["amount"]
         df["Notes"] = f"bank receipt {bank_code}"
         df["gl_jnl"] = False
         df["settled"] = True
@@ -204,11 +208,11 @@ class SalesLedger(PandasLedger):
         df = payments.copy()
         df["batch_id"] = batch_id
         df["entry_type"] = "bank_receipt"
-        df["Notes"] = "bank receipt " + df["Bank"]
+        df["Notes"] = "bank receipt " + df["bank"]
         df["gl_jnl"] = False
         df["settled"] = False
         df["PL"] = None
-        df = df.drop(labels="Bank", axis=1)
+        df = df.drop(labels="bank", axis=1)
         self.append(df)
         return
 
@@ -220,8 +224,8 @@ class SalesLedger(PandasLedger):
             credtior = invoice["Debtor"]
             nominal = invoice["PL"]
             description = invoice["Notes"]
-            amount = invoice["Amount"]
-            transaction_date = invoice["Date"]
+            amount = invoice["amount"]
+            transaction_date = invoice["date"]
 
             purchase_invoice = SalesInvoice(
                 creditor=credtior,
@@ -344,7 +348,7 @@ def main():
     unmatched_receipts = parser.get_unmatched_receipts()
 
     # TODO do this in batches
-    bank_ledger.add_transactions(bank_transactions, bank_code="nwa_ca")
+    bank_ledger.add_transactions(bank_transactions)
 
     purchase_ledger.add_settled_transcations(settled_invoices, bank_code="nwa_ca")
     purchase_ledger.add_payments(unmatched_payments)

@@ -1,6 +1,19 @@
+from dataclasses import dataclass, asdict
+from typing import List
+
 import pandas as pd
 
 from ledger import PandasLedger
+
+@dataclass
+class RawBankTransaction:
+    raw_id: int
+    bank_code: str
+    transfer_type: str
+    transaction_type: str
+    description: str
+    amount: int
+    date: str
 
 
 class BankLedger(PandasLedger):
@@ -10,20 +23,19 @@ class BankLedger(PandasLedger):
             "raw_id",
             "batch_id",
             "bank_code",
-            "Date",
-            "Transaction type",
-            "Description",
-            "Amount",
-            "Transfer Type",
+            "date",
+            "transaction_type",
+            "description",
+            "amount",
+            "transfer_type",
             "gl_jnl",
         ]
         self.df = pd.DataFrame(columns=self.columns)
         return
 
-    def add_transactions(self, transactions, bank_code: str):
-        df = transactions.copy()
+    def add_transactions(self, transactions: List[RawBankTransaction]):
+        df = pd.DataFrame([asdict(x) for x in transactions])
         df["batch_id"] = self.get_next_batch_id()
-        df["bank_code"] = bank_code
         df["gl_jnl"] = False
         self.append(df)
         return
