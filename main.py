@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, asdict
+from typing import List
 
 import pandas as pd
+import numpy as np
 
 
 class SourceDataLoader:
@@ -55,7 +58,7 @@ class Ledger(ABC):
 class PandasLedger(Ledger):
     def get_next_batch_id(self) -> int:
         try:
-            next_id = int(self.df["batch_id"].max())
+            next_id = int(self.df["batch_id"].max()) + 1
         except ValueError:
             return 0
         return next_id
@@ -160,6 +163,49 @@ class SalesLedger(PandasLedger):
         return
 
 
+@dataclass
+class GLJournalLine:
+    nominal: str
+    description: str
+    amount: int
+    transaction_date: str
+
+
+@dataclass
+class GLJournal:
+    jnl_type: str
+    lines: List[GLJournalLine]
+
+
+class GeneralLedger(PandasLedger):
+    def __init__(self) -> None:
+        self.columns = ['transaction_id', 'jnl_id', 'nominal', 'jnl_type', 'amount', 'description', 'transaction_date']
+        self.df = pd.DataFrame(columns=self.columns)
+        return
+
+    def get_next_transaction_id(self) -> int:
+        try:
+            next_id = int(self.df["transaction_id"].max()) + 1
+        except ValueError:
+            return 0
+        return next_id
+
+    def get_next_journal_id(self) -> int:
+        try:
+            next_id = int(self.df["jnl_id"].max()) + 1
+        except ValueError:
+            return 0
+        return next_id
+
+    def add_journal(self, journal: GLJournal) -> None:
+        df = pd.DataFrame([asdict(x) for x in journal.lines])
+        df["jnl_type"] = journal.jnl_type
+        next_id = self.get_next_transaction_id()
+        df['transaction_id'] = np.arange(start=next_id, stop=next_id+df.shape[0])
+        df['jnl_id'] = self.get_next_journal_id()
+        self.append(df)
+        return
+
 
 def main():
     data_loader = SourceDataLoader()
@@ -167,6 +213,7 @@ def main():
     bank_ledger = BankLedger()
     purchase_ledger = PurchaseLedger()
     sales_ledger = SalesLedger()
+    general_ledger = GeneralLedger()
 
     print("Bookkeeping Demo")
     print("Load source excel")
@@ -188,9 +235,24 @@ def main():
     sales_ledger.add_settled_transcations(settled_sales_invoices, bank_code="nwa_ca")
     sales_ledger.add_receipts(unmatched_receipts)
 
+    journal_lines = [GLJournalLine(nominal="purchase_control_account",
+                                  description="some description",
+                                  amount=-999,
+                                  transaction_date="XYZ"),
+                     GLJournalLine(nominal="gym",
+                                  description="some gym cost",
+                                  amount=999,
+                                  transaction_date="XYZ")]
+    journal = GLJournal(jnl_type="si", lines=journal_lines)
+    general_ledger.add_journal(journal)
+    general_ledger.add_journal(journal)
+    print(general_ledger.df)
+
+
     bank_ledger.df.to_csv("data/bank_ledger.csv", index=False)
     purchase_ledger.df.to_csv("data/purchase_ledger.csv", index=False)
     sales_ledger.df.to_csv("data/sales_ledger.csv", index=False)
+    general_ledger.df.to_csv("data/general_ledger.csv", index=False)
     return
 
 
