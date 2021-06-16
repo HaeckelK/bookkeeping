@@ -342,6 +342,14 @@ class CSVReportWriter(ReportWriter):
         return
 
 
+class HTMLReportWriter(ReportWriter):
+    def write_bank_ledger(self, ledger: BankLedger):
+        transactions = ledger.list_transactions()
+        df = pd.DataFrame([asdict(x) for x in transactions])
+        df.to_html("data/html/bank_ledger.html", index=False)
+        return
+
+
 def main():
     data_loader = SourceDataLoader()
     parser = SourceDataParser()
@@ -350,7 +358,7 @@ def main():
     sales_ledger = SalesLedger()
     general_ledger = GeneralLedger()
     inter_ledger_jnl_creator = InterLedgerJournalCreator()
-    report_writer = CSVReportWriter()
+    report_writer = HTMLReportWriter()
 
     print("Bookkeeping Demo")
     print("Load source excel")

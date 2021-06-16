@@ -1,10 +1,11 @@
 from dataclasses import dataclass, asdict
 from typing import List
-from abc import ABC, abstractmethod
+from abc import abstractmethod
 
 import pandas as pd
 
 from ledger import PandasLedger, Ledger
+
 
 @dataclass
 class RawBankTransaction:
