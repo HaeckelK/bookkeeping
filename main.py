@@ -1,12 +1,12 @@
 from dataclasses import dataclass, asdict
 from typing import List
-from abc import ABC, abstractmethod
 
 import pandas as pd
 
 from ledger import PandasLedger
-from bank import BankLedger, InMemoryBankLedger, RawBankTransaction
 from general import GLJournal, GLJournalLine, GeneralLedger
+from bank import InMemoryBankLedger, RawBankTransaction
+from reporting import HTMLReportWriter
 
 
 class SourceDataLoader:
@@ -292,28 +292,6 @@ class InterLedgerJournalCreator:
         journal = GLJournal(jnl_type="si", lines=gl_lines)
 
         return [journal]
-
-
-class ReportWriter(ABC):
-    @abstractmethod
-    def write_bank_ledger(self, ledger: BankLedger):
-        """"""
-
-
-class CSVReportWriter(ReportWriter):
-    def write_bank_ledger(self, ledger: BankLedger):
-        transactions = ledger.list_transactions()
-        df = pd.DataFrame([asdict(x) for x in transactions])
-        df.to_csv("data/bank_ledger.csv", index=False)
-        return
-
-
-class HTMLReportWriter(ReportWriter):
-    def write_bank_ledger(self, ledger: BankLedger):
-        transactions = ledger.list_transactions()
-        df = pd.DataFrame([asdict(x) for x in transactions])
-        df.to_html("data/html/bank_ledger.html", index=False)
-        return
 
 
 def main():
