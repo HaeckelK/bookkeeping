@@ -1,4 +1,4 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import List
 
 import pandas as pd
@@ -333,12 +333,12 @@ def main():
         general_ledger.add_journal(journal)
         # TODO update sales_ledger that these have been added to gl
 
-    print(general_ledger.df)
-
     report_writer.write_bank_ledger(bank_ledger)
+    report_writer.write_general_ledger(general_ledger)
+
     purchase_ledger.df.to_csv("data/purchase_ledger.csv", index=False)
     sales_ledger.df.to_csv("data/sales_ledger.csv", index=False)
-    general_ledger.df.to_csv("data/general_ledger.csv", index=False)
+
     return
 
 

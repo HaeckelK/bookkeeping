@@ -20,6 +20,17 @@ class GLJournal:
     lines: List[GLJournalLine]
 
 
+@dataclass
+class GeneralLedgerTransaction:
+    transaction_id: int
+    jnl_id: int
+    nominal: str
+    jnl_type: str
+    amount: int
+    description: str
+    transaction_date: str
+
+
 class GeneralLedger(PandasLedger):
     def __init__(self) -> None:
         self.columns = ["transaction_id", "jnl_id", "nominal", "jnl_type", "amount", "description", "transaction_date"]
@@ -39,3 +50,6 @@ class GeneralLedger(PandasLedger):
         df["jnl_id"] = self.get_next_journal_id()
         self.append(df)
         return
+
+    def list_transactions(self) -> List[GeneralLedgerTransaction]:
+        return [GeneralLedgerTransaction(**x) for x in self.df.to_dict("records")]
