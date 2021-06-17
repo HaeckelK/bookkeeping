@@ -381,11 +381,19 @@ def main():
         general_ledger.add_journal(journal)
         # TODO update bank_ledger that these have been added to gl
 
+    # Reporting
     report_writer.write_bank_ledger(bank_ledger)
     report_writer.write_general_ledger(general_ledger)
 
     purchase_ledger.df.to_csv("data/purchase_ledger.csv", index=False)
     sales_ledger.df.to_csv("data/sales_ledger.csv", index=False)
+
+    # Validation
+    print("Running validation checks")
+    print("General Ledger sums to 0. Value:", general_ledger.balance, general_ledger.balance == 0)
+    # TODO each bank account sums to account on GL
+    # TODO purchase ledger sum agrees to control account
+    # TODO sales ledger sum agrees to control account
 
     return
 

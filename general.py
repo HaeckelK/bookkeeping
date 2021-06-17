@@ -53,3 +53,9 @@ class GeneralLedger(PandasLedger):
 
     def list_transactions(self) -> List[GeneralLedgerTransaction]:
         return [GeneralLedgerTransaction(**x) for x in self.df.to_dict("records")]
+
+    @property
+    def balance(self) -> int:
+        return sum(x.amount for x in self.list_transactions())
+
+    # TODO balances / trial balance
