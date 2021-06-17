@@ -25,7 +25,7 @@ class SourceDataParser:
         return
 
     def get_bank_transactions(self) -> List[RawBankTransaction]:
-        df = self.df[["date", "transaction_type", "description", "amount", "transfer_type", "raw_id", "bank"]]
+        df = self.df[["date", "transaction_type", "description", "amount", "transfer_type", "raw_id", "bank", "matched_account"]]
         lines = []
         for transaction in df.to_dict("records"):
             transaction["bank_code"] = transaction["bank"]

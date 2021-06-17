@@ -16,6 +16,7 @@ class RawBankTransaction:
     description: str
     amount: int
     date: str
+    matched_account: str
 
 
 @dataclass
@@ -48,6 +49,7 @@ class InMemoryBankLedger(BankLedger, PandasLedger):
             "amount",
             "description",
             "gl_jnl",
+            "matched_account",
         ]
         self.df = pd.DataFrame(columns=self.columns)
         return
