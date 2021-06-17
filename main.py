@@ -302,7 +302,7 @@ def main():
     sales_ledger = SalesLedger()
     general_ledger = GeneralLedger()
     inter_ledger_jnl_creator = InterLedgerJournalCreator()
-    report_writer = HTMLReportWriter(path="data")
+    report_writer = HTMLReportWriter(path="data/html")
 
     print("Bookkeeping Demo")
     print("Load source excel")

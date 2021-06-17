@@ -37,7 +37,7 @@ class CSVReportWriter(ReportWriter):
 class HTMLReportWriter(ReportWriter):
     def __init__(self, path: str) -> None:
         self.path = path
-        self.ledgers_path = os.path.join(self.path, "html/ledger_transactions")
+        self.ledgers_path = os.path.join(self.path, "ledger_transactions")
         if os.path.exists(self.ledgers_path) is False:
             os.makedirs(self.ledgers_path)
         
@@ -55,4 +55,9 @@ class HTMLReportWriter(ReportWriter):
         df = pd.DataFrame([asdict(x) for x in transactions])
         df = df[ledger.columns]
         df.to_html(os.path.join(self.ledgers_path, "general_ledger.html"), index=False)
+
+        # TODO all df manipulations below here should be being created by Statement and Nominal producing
+        # classes and passed into new methods of ReportWriter
+        balances = df[['nominal', 'amount']].groupby(['nominal']).sum()
+        balances.reset_index().to_html(os.path.join(self.path, "gl_balances.html"), index=False)
         return
