@@ -38,8 +38,13 @@ class HTMLReportWriter(ReportWriter):
     def __init__(self, path: str) -> None:
         self.path = path
         self.ledgers_path = os.path.join(self.path, "ledger_transactions")
+        self.nominals_path = os.path.join(self.path, "nominal_transactions")
+
         if os.path.exists(self.ledgers_path) is False:
             os.makedirs(self.ledgers_path)
+
+        if os.path.exists(self.nominals_path) is False:
+            os.makedirs(self.nominals_path)
         
         return
 
@@ -60,4 +65,9 @@ class HTMLReportWriter(ReportWriter):
         # classes and passed into new methods of ReportWriter
         balances = df[['nominal', 'amount']].groupby(['nominal']).sum()
         balances.reset_index().to_html(os.path.join(self.path, "gl_balances.html"), index=False)
+
+        nominals = df['nominal'].unique()
+        for nominal in nominals:
+            nominal_df = df.loc[(df["nominal"] == nominal)]
+            nominal_df.to_html(os.path.join(self.nominals_path, f"{nominal}.html"), index=False)
         return
