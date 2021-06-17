@@ -65,8 +65,12 @@ class HTMLReportWriter(ReportWriter):
 
         # TODO all df manipulations below here should be being created by Statement and Nominal producing
         # classes and passed into new methods of ReportWriter
+        coa_df = load_coa("data/cashbook.xlsx", "coa")
         balances = df[['nominal', 'amount']].groupby(['nominal']).sum()
-        balances.reset_index().to_html(os.path.join(self.path, "gl_balances.html"), index=False)
+        balances = balances.join(coa_df.set_index('nominal'), on='nominal')
+        balances = balances.reset_index()[['statement', 'heading', 'nominal', 'amount']]
+        balances["nominal"] = balances["nominal"] + "_NOMINAL"
+        balances.sort_values(by=['statement', 'heading', 'nominal']).to_html(os.path.join(self.path, "trial_balance.html"), index=False)
 
         nominals = df['nominal'].unique()
         for nominal in nominals:
@@ -74,7 +78,7 @@ class HTMLReportWriter(ReportWriter):
             nominal_df.to_html(os.path.join(self.nominals_path, f"{nominal}.html"), index=False)
 
         # Hack to add links to prebuilt to_html table
-        filename = os.path.join(self.path, "gl_balances.html")
+        filename = os.path.join(self.path, "trial_balance.html")
         with open(filename, "r") as f:
             html = f.read().splitlines()
 
@@ -82,9 +86,9 @@ class HTMLReportWriter(ReportWriter):
         new_html = []
         for line in html:
             matches = re.findall(regex, line)
-            if matches:
-                nominal = matches[0]
-                new_line = line.replace(nominal, f'<a href="/nominal_transactions/{nominal}.html">{nominal}</a>')
+            if matches and "_NOMINAL" in line:
+                nominal = matches[0].replace("_NOMINAL", "")
+                new_line = line.replace(nominal + "_NOMINAL", f'<a href="/nominal_transactions/{nominal}.html">{nominal}</a>')
                 new_html.append(new_line)
             else:
                 new_html.append(line)
@@ -92,3 +96,9 @@ class HTMLReportWriter(ReportWriter):
         with open(filename, "w") as f:
             f.write("\n".join(new_html))
         return
+
+
+# TODO move out of this module
+def load_coa(filename: str, sheetname: str):
+    df = pd.read_excel(filename, sheet_name=sheetname, index_col=None)
+    return df
