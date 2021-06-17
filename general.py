@@ -33,7 +33,7 @@ class GeneralLedgerTransaction:
 
 class GeneralLedger(PandasLedger):
     def __init__(self) -> None:
-        self.columns = ["transaction_id", "jnl_id", "nominal", "jnl_type", "amount", "description", "transaction_date"]
+        self.columns = ["transaction_id", "jnl_id", "jnl_type", "transaction_date", "nominal", "amount", "description"]
         self.df = pd.DataFrame(columns=self.columns)
         return
 
