@@ -1,11 +1,12 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import List
+import math
 
 import pandas as pd
 
 from ledger import PandasLedger
 from general import GLJournal, GLJournalLine, GeneralLedger
-from bank import InMemoryBankLedger, RawBankTransaction
+from bank import BankTransaction, InMemoryBankLedger, RawBankTransaction
 from reporting import HTMLReportWriter
 
 
@@ -25,7 +26,18 @@ class SourceDataParser:
         return
 
     def get_bank_transactions(self) -> List[RawBankTransaction]:
+        # TODO strip this out as a util manipulation
+        matched = self.df[["Creditor", "Debtor", "BS"]].copy()
+        matched_dict = {}
+        for index, line in matched.to_dict("index").items():
+            for matched_type, matched_account in line.items():
+                if isinstance(matched_account, str):
+                    matched_dict[index] = [matched_account, matched_type.lower()]
+
+        matched = pd.DataFrame.from_dict(matched_dict, orient='index', columns=["matched_account", "matched_type"])
+
         df = self.df[["date", "transaction_type", "description", "amount", "transfer_type", "raw_id", "bank"]]
+        df = df.join(matched)
         lines = []
         for transaction in df.to_dict("records"):
             transaction["bank_code"] = transaction["bank"]
@@ -293,6 +305,37 @@ class InterLedgerJournalCreator:
 
         return [journal]
 
+    def create_bank_to_gl_journals(self, transactions: BankTransaction) -> List[GLJournal]:
+        df = pd.DataFrame([asdict(x) for x in transactions])
+        df = df[['bank_code', 'matched_type', 'amount']].groupby(['bank_code', 'matched_type']).sum().reset_index()
+
+        lookup = {"creditor": "puchase_ledger_control_account",
+                  "debtor": "sales_ledger_control_account",
+                  "bs": "bank_contra"}
+        journals = []
+        for line in df.to_dict("record"):
+            bank_code = line["bank_code"]
+            amount = -line["amount"]
+            gl_account = lookup[line["matched_type"]]
+
+            gl_lines = [
+                GLJournalLine(
+                    nominal=bank_code,
+                    description="some auto generated description",
+                    amount=amount,
+                    transaction_date="ADD DATE HERE",
+                ),
+                GLJournalLine(
+                    nominal=gl_account,
+                    description="some auto generated description",
+                    amount=-amount,
+                    transaction_date="ADD DATE HERE",
+                )
+            ]
+            journal = GLJournal(jnl_type="bank", lines=gl_lines)
+            journals.append(journal)
+        return journals
+
 
 def main():
     data_loader = SourceDataLoader()
@@ -332,6 +375,11 @@ def main():
     for journal in journals:
         general_ledger.add_journal(journal)
         # TODO update sales_ledger that these have been added to gl
+
+    journals = inter_ledger_jnl_creator.create_bank_to_gl_journals(bank_ledger.list_transactions())
+    for journal in journals:
+        general_ledger.add_journal(journal)
+        # TODO update bank_ledger that these have been added to gl
 
     report_writer.write_bank_ledger(bank_ledger)
     report_writer.write_general_ledger(general_ledger)
