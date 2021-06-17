@@ -1,5 +1,5 @@
 from dataclasses import dataclass, asdict
-from typing import List
+from typing import List, Dict
 
 import pandas as pd
 
@@ -53,3 +53,12 @@ class GeneralLedger(PandasLedger):
 
     def list_transactions(self) -> List[GeneralLedgerTransaction]:
         return [GeneralLedgerTransaction(**x) for x in self.df.to_dict("records")]
+
+    @property
+    def balance(self) -> int:
+        return self.df["amount"].sum()
+
+    @property
+    def balances(self) -> Dict[str, int]:
+        data = self.df[['nominal', 'amount']].groupby(['nominal']).sum().to_dict()["amount"]
+        return data

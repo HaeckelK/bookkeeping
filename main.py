@@ -178,6 +178,10 @@ class PurchaseLedger(PandasLedger):
             invoices.append(purchase_invoice)
         return invoices
 
+    @property
+    def balance(self) -> int:
+        return self.df["amount"].sum()
+
 
 # TODO parent calss for SalesLedger, PurchaseLedger
 class SalesLedger(PandasLedger):
@@ -252,6 +256,10 @@ class SalesLedger(PandasLedger):
             invoices.append(purchase_invoice)
         return invoices
 
+    @property
+    def balance(self) -> int:
+        return self.df["amount"].sum()
+
 
 class InterLedgerJournalCreator:
     def create_pl_to_gl_journals(self, invoices: List[PurchaseInvoice]) -> List[GLJournal]:
@@ -259,7 +267,7 @@ class InterLedgerJournalCreator:
 
         gl_lines = [
             GLJournalLine(
-                nominal="puchase_ledger_control_account",
+                nominal="purchase_ledger_control_account",
                 description="some auto generated description",
                 amount=-total,
                 transaction_date="TODAY",
@@ -309,7 +317,7 @@ class InterLedgerJournalCreator:
         df = pd.DataFrame([asdict(x) for x in transactions])
         df = df[['bank_code', 'matched_type', 'amount']].groupby(['bank_code', 'matched_type']).sum().reset_index()
 
-        lookup = {"creditor": "puchase_ledger_control_account",
+        lookup = {"creditor": "purchase_ledger_control_account",
                   "debtor": "sales_ledger_control_account",
                   "bs": "bank_contra"}
         journals = []
@@ -381,11 +389,31 @@ def main():
         general_ledger.add_journal(journal)
         # TODO update bank_ledger that these have been added to gl
 
+    # Reporting
     report_writer.write_bank_ledger(bank_ledger)
     report_writer.write_general_ledger(general_ledger)
 
     purchase_ledger.df.to_csv("data/purchase_ledger.csv", index=False)
     sales_ledger.df.to_csv("data/sales_ledger.csv", index=False)
+
+    # Validation
+    print("Running validation checks")
+    print("General Ledger sums to 0. Value:", general_ledger.balance, general_ledger.balance == 0)
+    # TODO each bank account sums to account on GL
+
+    print("\n")
+    print("Purchase Ledger Control Account agrees to Purchase Ledger")
+    plca_value = general_ledger.balances["purchase_ledger_control_account"]
+    print("PLCA value:", plca_value)
+    purchase_ledger_balance = purchase_ledger.balance
+    print("Purchase Ledger value:", purchase_ledger_balance)
+    print(plca_value == purchase_ledger_balance)
+    print("\n")
+    slca_value = general_ledger.balances["sales_ledger_control_account"]
+    print("SLCA value:", slca_value)
+    sales_ledger_balance = sales_ledger.balance
+    print("Sales Ledger value:", sales_ledger_balance)
+    print(slca_value == sales_ledger_balance)
 
     return
 
