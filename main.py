@@ -307,28 +307,34 @@ class InterLedgerJournalCreator:
 
     def create_bank_to_gl_journals(self, transactions: BankTransaction) -> List[GLJournal]:
         df = pd.DataFrame([asdict(x) for x in transactions])
-        # total = sum(x.total for x in invoices)
+        df = df[['bank_code', 'matched_type', 'amount']].groupby(['bank_code', 'matched_type']).sum().reset_index()
 
-        # gl_lines = [
-        #     GLJournalLine(
-        #         nominal="sales_ledger_control_account",
-        #         description="some auto generated description",
-        #         amount=-total,
-        #         transaction_date="TODAY",
-        #     )
-        # ]
-        # for invoice in invoices:
-        #     for line in invoice.lines:
-        #         gl_line = GLJournalLine(
-        #             nominal=line.nominal,
-        #             description=line.description,
-        #             amount=line.amount,
-        #             transaction_date=line.transaction_date,
-        #         )
-        #         gl_lines.append(gl_line)
+        lookup = {"creditor": "puchase_ledger_control_account",
+                  "debtor": "sales_ledger_control_account",
+                  "bs": "bank_contra"}
+        journals = []
+        for line in df.to_dict("record"):
+            bank_code = line["bank_code"]
+            amount = -line["amount"]
+            gl_account = lookup[line["matched_type"]]
 
-        # journal = GLJournal(jnl_type="si", lines=gl_lines)
-        return []
+            gl_lines = [
+                GLJournalLine(
+                    nominal=bank_code,
+                    description="some auto generated description",
+                    amount=amount,
+                    transaction_date="ADD DATE HERE",
+                ),
+                GLJournalLine(
+                    nominal=gl_account,
+                    description="some auto generated description",
+                    amount=-amount,
+                    transaction_date="ADD DATE HERE",
+                )
+            ]
+            journal = GLJournal(jnl_type="bank", lines=gl_lines)
+            journals.append(journal)
+        return journals
 
 
 def main():
