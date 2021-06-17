@@ -1,12 +1,12 @@
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from typing import List
-from abc import ABC, abstractmethod
 
 import pandas as pd
 
 from ledger import PandasLedger
-from bank import BankLedger, InMemoryBankLedger, RawBankTransaction
 from general import GLJournal, GLJournalLine, GeneralLedger
+from bank import InMemoryBankLedger, RawBankTransaction
+from reporting import HTMLReportWriter
 
 
 class SourceDataLoader:
@@ -294,28 +294,6 @@ class InterLedgerJournalCreator:
         return [journal]
 
 
-class ReportWriter(ABC):
-    @abstractmethod
-    def write_bank_ledger(self, ledger: BankLedger):
-        """"""
-
-
-class CSVReportWriter(ReportWriter):
-    def write_bank_ledger(self, ledger: BankLedger):
-        transactions = ledger.list_transactions()
-        df = pd.DataFrame([asdict(x) for x in transactions])
-        df.to_csv("data/bank_ledger.csv", index=False)
-        return
-
-
-class HTMLReportWriter(ReportWriter):
-    def write_bank_ledger(self, ledger: BankLedger):
-        transactions = ledger.list_transactions()
-        df = pd.DataFrame([asdict(x) for x in transactions])
-        df.to_html("data/html/bank_ledger.html", index=False)
-        return
-
-
 def main():
     data_loader = SourceDataLoader()
     parser = SourceDataParser()
@@ -355,12 +333,12 @@ def main():
         general_ledger.add_journal(journal)
         # TODO update sales_ledger that these have been added to gl
 
-    print(general_ledger.df)
-
     report_writer.write_bank_ledger(bank_ledger)
+    report_writer.write_general_ledger(general_ledger)
+
     purchase_ledger.df.to_csv("data/purchase_ledger.csv", index=False)
     sales_ledger.df.to_csv("data/sales_ledger.csv", index=False)
-    general_ledger.df.to_csv("data/general_ledger.csv", index=False)
+
     return
 
 
