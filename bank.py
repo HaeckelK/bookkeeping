@@ -39,14 +39,14 @@ class InMemoryBankLedger(BankLedger, PandasLedger):
     def __init__(self) -> None:
         self.columns = [
             "transaction_id",
-            "raw_id",
             "batch_id",
-            "bank_code",
-            "date",
-            "transaction_type",
-            "description",
-            "amount",
+            "raw_id",
             "transfer_type",
+            "date",
+            "bank_code",
+            "transaction_type",
+            "amount",
+            "description",
             "gl_jnl",
         ]
         self.df = pd.DataFrame(columns=self.columns)
