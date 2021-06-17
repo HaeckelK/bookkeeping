@@ -1,11 +1,12 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import List
+import math
 
 import pandas as pd
 
 from ledger import PandasLedger
 from general import GLJournal, GLJournalLine, GeneralLedger
-from bank import InMemoryBankLedger, RawBankTransaction
+from bank import BankTransaction, InMemoryBankLedger, RawBankTransaction
 from reporting import HTMLReportWriter
 
 
@@ -25,7 +26,18 @@ class SourceDataParser:
         return
 
     def get_bank_transactions(self) -> List[RawBankTransaction]:
-        df = self.df[["date", "transaction_type", "description", "amount", "transfer_type", "raw_id", "bank", "matched_account"]]
+        # TODO strip this out as a util manipulation
+        matched = self.df[["Creditor", "Debtor", "BS"]].copy()
+        matched_dict = {}
+        for index, line in matched.to_dict("index").items():
+            for matched_type, matched_account in line.items():
+                if isinstance(matched_account, str):
+                    matched_dict[index] = [matched_account, matched_type.lower()]
+
+        matched = pd.DataFrame.from_dict(matched_dict, orient='index', columns=["matched_account", "matched_type"])
+
+        df = self.df[["date", "transaction_type", "description", "amount", "transfer_type", "raw_id", "bank"]]
+        df = df.join(matched)
         lines = []
         for transaction in df.to_dict("records"):
             transaction["bank_code"] = transaction["bank"]
@@ -293,6 +305,31 @@ class InterLedgerJournalCreator:
 
         return [journal]
 
+    def create_bank_to_gl_journals(self, transactions: BankTransaction) -> List[GLJournal]:
+        df = pd.DataFrame([asdict(x) for x in transactions])
+        # total = sum(x.total for x in invoices)
+
+        # gl_lines = [
+        #     GLJournalLine(
+        #         nominal="sales_ledger_control_account",
+        #         description="some auto generated description",
+        #         amount=-total,
+        #         transaction_date="TODAY",
+        #     )
+        # ]
+        # for invoice in invoices:
+        #     for line in invoice.lines:
+        #         gl_line = GLJournalLine(
+        #             nominal=line.nominal,
+        #             description=line.description,
+        #             amount=line.amount,
+        #             transaction_date=line.transaction_date,
+        #         )
+        #         gl_lines.append(gl_line)
+
+        # journal = GLJournal(jnl_type="si", lines=gl_lines)
+        return []
+
 
 def main():
     data_loader = SourceDataLoader()
@@ -332,6 +369,11 @@ def main():
     for journal in journals:
         general_ledger.add_journal(journal)
         # TODO update sales_ledger that these have been added to gl
+
+    journals = inter_ledger_jnl_creator.create_bank_to_gl_journals(bank_ledger.list_transactions())
+    for journal in journals:
+        general_ledger.add_journal(journal)
+        # TODO update bank_ledger that these have been added to gl
 
     report_writer.write_bank_ledger(bank_ledger)
     report_writer.write_general_ledger(general_ledger)
