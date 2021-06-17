@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import asdict
+import os
 
 import pandas as pd
 
@@ -22,7 +23,7 @@ class CSVReportWriter(ReportWriter):
         transactions = ledger.list_transactions()
         df = pd.DataFrame([asdict(x) for x in transactions])
         df = df[ledger.columns]
-        df.to_csv("data/bank_ledger.csv", index=False)
+        df.to_csv("ledger_transactions/bank_ledger.csv", index=False)
         return
 
     def write_general_ledger(self, ledger: GeneralLedger):
@@ -34,16 +35,24 @@ class CSVReportWriter(ReportWriter):
 
 
 class HTMLReportWriter(ReportWriter):
+    def __init__(self, path: str) -> None:
+        self.path = path
+        self.ledgers_path = os.path.join(self.path, "html/ledger_transactions")
+        if os.path.exists(self.ledgers_path) is False:
+            os.makedirs(self.ledgers_path)
+        
+        return
+
     def write_bank_ledger(self, ledger: BankLedger):
         transactions = ledger.list_transactions()
         df = pd.DataFrame([asdict(x) for x in transactions])
         df = df[ledger.columns]
-        df.to_html("data/html/bank_ledger.html", index=False)
+        df.to_html(os.path.join(self.ledgers_path, "bank_ledger.html"), index=False)
         return
 
     def write_general_ledger(self, ledger: GeneralLedger):
         transactions = ledger.list_transactions()
         df = pd.DataFrame([asdict(x) for x in transactions])
         df = df[ledger.columns]
-        df.to_html("data/html/general_ledger.html", index=False)
+        df.to_html(os.path.join(self.ledgers_path, "general_ledger.html"), index=False)
         return
