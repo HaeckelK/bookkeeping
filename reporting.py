@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import asdict
 import os
+import re
 
 import pandas as pd
 
@@ -70,4 +71,23 @@ class HTMLReportWriter(ReportWriter):
         for nominal in nominals:
             nominal_df = df.loc[(df["nominal"] == nominal)]
             nominal_df.to_html(os.path.join(self.nominals_path, f"{nominal}.html"), index=False)
+
+        # Hack to add links to prebuilt to_html table
+        filename = os.path.join(self.path, "gl_balances.html")
+        with open(filename, "r") as f:
+            html = f.read().splitlines()
+
+        regex = r"<td>(\D+)<\/td>"
+        new_html = []
+        for line in html:
+            matches = re.findall(regex, line)
+            if matches:
+                nominal = matches[0]
+                new_line = line.replace(nominal, f'<a href="/nominal_transactions/{nominal}.html">{nominal}</a>')
+                new_html.append(new_line)
+            else:
+                new_html.append(line)
+
+        with open(filename, "w") as f:
+            f.write("\n".join(new_html))
         return
