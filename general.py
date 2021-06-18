@@ -1,5 +1,6 @@
 from dataclasses import dataclass, asdict
 from typing import List, Dict
+from abc import ABC, abstractmethod
 
 import pandas as pd
 
@@ -32,7 +33,7 @@ class GeneralLedgerTransaction:
     period: int
 
 
-class GeneralLedger(PandasLedger):
+class GeneralLedgerTransactions(PandasLedger):
     def __init__(self) -> None:
         self.columns = ["transaction_id", "jnl_id", "jnl_type", "transaction_date", "period", "nominal", "amount", "description"]
         self.df = pd.DataFrame(columns=self.columns)
@@ -74,3 +75,55 @@ def convert_date_string_to_period(timestamp) -> int:
         return -1
     else:
         return month
+
+
+@dataclass
+class NewNominal:
+    name: str
+    statement: str
+    heading: str
+    expected_sign: str
+    control_account: bool
+    bank_account: bool
+
+
+@dataclass
+class Nominal:
+    name: str
+    statement: str
+    heading: str
+    expected_sign: str
+    control_account: bool
+    bank_account: bool
+
+
+class ChartOfAccounts(ABC):
+    @abstractmethod
+    def add_nominal(self, nominal: NewNominal) -> None:
+        """Add a new nominal account to Chart Of Accounts."""
+
+    @property
+    @abstractmethod
+    def nominals(self) -> List[Nominal]:
+        """"""
+
+
+class InMemoryChartOfAccounts(ChartOfAccounts):
+    def __init__(self) -> None:
+        self._nominals: Nominal = []
+        return
+
+    def add_nominal(self, nominal: NewNominal) -> None:
+        self._nominals.append(Nominal(**asdict(nominal)))
+        return
+
+    @property
+    def nominals(self) -> List[Nominal]:
+        return [x for x in self._nominals]
+
+
+class GeneralLedger:
+    def __init__(self, ledger: GeneralLedgerTransactions, chart_of_accounts: ChartOfAccounts):
+        self.ledger = ledger
+        self.chart_of_accounts = chart_of_accounts
+        return
