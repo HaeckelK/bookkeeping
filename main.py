@@ -28,6 +28,7 @@ class ExcelSourceDataLoader:
         return
 
     def load_bank(self):
+        # TODO set all column names to lower
         df = pd.read_excel(self.filename, sheet_name=self.bank_sheet, index_col=None)
         df["amount"] = df["amount"] * 100
         df = df.astype({"amount": "int32"})
@@ -47,6 +48,24 @@ class SourceDataParser:
     def register_source_data(self, bank, coa) -> None:
         self.bank = bank
         self.coa = coa
+        self.extend_coa()
+        return
+
+    def extend_coa(self) -> None:
+        """self.coa may not be complete. Add any nominals seen in other sheets."""
+        additional_nominals = []
+        existing_nominals = self.coa["nominal"].unique()
+        for field in ('BS', 'PL'):
+            for bank_nominal in self.bank[field].unique():
+                if isinstance(bank_nominal, str) is False:
+                    continue
+                if bank_nominal in existing_nominals:
+                    continue
+                additional_nominals.append({"nominal": bank_nominal, "statement": field.lower(),
+                                            "expected_sign": "dr", "control_account": False,
+                                            "bank_account": False, "heading": "NOMINAL DETAILS MISSING"})
+        if additional_nominals:
+            self.coa = self.coa.append(additional_nominals, ignore_index=True)
         return
 
     def get_bank_transactions(self) -> List[RawBankTransaction]:
@@ -405,7 +424,6 @@ def main():
     nominals = parser.chart_of_accounts_config
     for nominal in nominals:
         print(f"Adding nominal to COA: {nominal.name}")
-        print(nominal)
         general.chart_of_accounts.add_nominal(nominal)
 
 
