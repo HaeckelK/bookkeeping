@@ -1,6 +1,6 @@
 from dataclasses import dataclass, asdict
 from typing import List
-import math
+import datetime
 
 import pandas as pd
 
@@ -266,13 +266,13 @@ class SalesLedger(PandasLedger):
 class InterLedgerJournalCreator:
     def create_pl_to_gl_journals(self, invoices: List[PurchaseInvoice]) -> List[GLJournal]:
         total = sum(x.total for x in invoices)
-
+        transaction_date = max(line.transaction_date for invoice in invoices for line in invoice.lines)
         gl_lines = [
             GLJournalLine(
                 nominal="purchase_ledger_control_account",
                 description="some auto generated description",
                 amount=-total,
-                transaction_date="TODAY",
+                transaction_date=transaction_date,
             )
         ]
         for invoice in invoices:
@@ -292,13 +292,13 @@ class InterLedgerJournalCreator:
     # TODO DRY see create_pl_to_gl_journals
     def create_sl_to_gl_journals(self, invoices: List[PurchaseInvoice]) -> List[GLJournal]:
         total = sum(x.total for x in invoices)
-
+        transaction_date = max(line.transaction_date for invoice in invoices for line in invoice.lines)
         gl_lines = [
             GLJournalLine(
                 nominal="sales_ledger_control_account",
                 description="some auto generated description",
                 amount=-total,
-                transaction_date="TODAY",
+                transaction_date=transaction_date,
             )
         ]
         for invoice in invoices:
@@ -333,13 +333,13 @@ class InterLedgerJournalCreator:
                     nominal=bank_code,
                     description="some auto generated description",
                     amount=amount,
-                    transaction_date="ADD DATE HERE",
+                    transaction_date=datetime.datetime.now(),
                 ),
                 GLJournalLine(
                     nominal=gl_account,
                     description="some auto generated description",
                     amount=-amount,
-                    transaction_date="ADD DATE HERE",
+                    transaction_date=datetime.datetime.now(),
                 )
             ]
             journal = GLJournal(jnl_type="bank", lines=gl_lines)
