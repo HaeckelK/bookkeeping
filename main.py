@@ -21,7 +21,10 @@ class ExcelSourceDataLoader:
         return
 
     def load(self):
+        print("Loading Bank Sheet")
         self.load_bank()
+        print("Loading COA Sheet")
+        self.load_coa()
         return
 
     def load_bank(self):
@@ -32,15 +35,20 @@ class ExcelSourceDataLoader:
         self.bank = df
         return
 
+    def load_coa(self):
+        df = pd.read_excel(self.filename, sheet_name=self.coa_sheet, index_col=None)
+        self.coa = df
+        return
+
 
 class SourceDataParser:
-    def register_source_data(self, df) -> None:
-        self.df = df
+    def register_source_data(self, bank) -> None:
+        self.bank = bank
         return
 
     def get_bank_transactions(self) -> List[RawBankTransaction]:
         # TODO strip this out as a util manipulation
-        matched = self.df[["Creditor", "Debtor", "BS"]].copy()
+        matched = self.bank[["Creditor", "Debtor", "BS"]].copy()
         matched_dict = {}
         for index, line in matched.to_dict("index").items():
             for matched_type, matched_account in line.items():
@@ -49,7 +57,7 @@ class SourceDataParser:
 
         matched = pd.DataFrame.from_dict(matched_dict, orient='index', columns=["matched_account", "matched_type"])
 
-        df = self.df[["date", "transaction_type", "description", "amount", "transfer_type", "raw_id", "bank_code"]]
+        df = self.bank[["date", "transaction_type", "description", "amount", "transfer_type", "raw_id", "bank_code"]]
         df = df.join(matched)
         lines = []
         for transaction in df.to_dict("records"):
@@ -57,23 +65,23 @@ class SourceDataParser:
         return lines
 
     def get_settled_invoices(self):
-        df = self.df[["raw_id", "date", "amount", "Creditor", "PL", "Notes", "bank_code"]]
+        df = self.bank[["raw_id", "date", "amount", "Creditor", "PL", "Notes", "bank_code"]]
         df = df.loc[(df["Creditor"].notnull()) & (df["PL"].notnull())]
         return df
 
     def get_settled_sales_invoices(self):
-        df = self.df[["raw_id", "date", "amount", "Debtor", "PL", "Notes", "bank_code"]]
+        df = self.bank[["raw_id", "date", "amount", "Debtor", "PL", "Notes", "bank_code"]]
         df = df.loc[(df["Debtor"].notnull()) & (df["PL"].notnull())]
         return df
 
     def get_unmatched_payments(self):
-        df = self.df.copy()
+        df = self.bank.copy()
         df = df.loc[(df["Creditor"].notnull()) & (df["PL"].isnull()) & (df["BS"].isnull())]
         df = df[["raw_id", "date", "amount", "Creditor", "Notes", "bank_code"]]
         return df
 
     def get_unmatched_receipts(self):
-        df = self.df.copy()
+        df = self.bank.copy()
         df = df.loc[(df["Debtor"].notnull()) & (df["PL"].isnull()) & (df["BS"].isnull())]
         df = df[["raw_id", "date", "amount", "Debtor", "Notes", "bank_code"]]
         return df
@@ -381,7 +389,7 @@ def main():
     print("Bookkeeping Demo")
     print("Load source excel")
     data_loader.load()
-    parser.register_source_data(data_loader.bank)
+    parser.register_source_data(bank=data_loader.bank)
 
     bank_transactions = parser.get_bank_transactions()
     settled_invoices = parser.get_settled_invoices()
