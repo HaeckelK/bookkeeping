@@ -80,6 +80,11 @@ def convert_date_string_to_period(timestamp) -> int:
 @dataclass
 class NewNominal:
     name: str
+    statement: str
+    heading: str
+    expected_sign: str
+    control_account: bool
+    bank_account: bool
 
 
 class ChartOfAccounts(ABC):

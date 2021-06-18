@@ -37,13 +37,16 @@ class ExcelSourceDataLoader:
 
     def load_coa(self):
         df = pd.read_excel(self.filename, sheet_name=self.coa_sheet, index_col=None)
+        df["control_account"] = df["control_account"].map({'y': True, 'n': False})
+        df["bank_account"] = df["bank_account"].map({'y': True, 'n': False})
         self.coa = df
         return
 
 
 class SourceDataParser:
-    def register_source_data(self, bank) -> None:
+    def register_source_data(self, bank, coa) -> None:
         self.bank = bank
+        self.coa = coa
         return
 
     def get_bank_transactions(self) -> List[RawBankTransaction]:
@@ -88,7 +91,13 @@ class SourceDataParser:
 
     @property
     def chart_of_accounts_config(self) -> List[NewNominal]:
-        return []
+        # TODO get accounts not listed in COA sheet, look at bank sheet too
+        nominals = []
+        for nominal in self.coa.to_dict("record"):
+            nominal["name"] = nominal["nominal"]
+            del nominal["nominal"]
+            nominals.append(NewNominal(**nominal))
+        return nominals
 
 
 @dataclass
@@ -389,7 +398,16 @@ def main():
     print("Bookkeeping Demo")
     print("Load source excel")
     data_loader.load()
-    parser.register_source_data(bank=data_loader.bank)
+    parser.register_source_data(bank=data_loader.bank,
+                                coa=data_loader.coa)
+
+    # Setup financials config
+    nominals = parser.chart_of_accounts_config
+    for nominal in nominals:
+        print(f"Adding nominal to COA: {nominal.name}")
+        print(nominal)
+        general.chart_of_accounts.add_nominal(nominal)
+
 
     bank_transactions = parser.get_bank_transactions()
     settled_invoices = parser.get_settled_invoices()
