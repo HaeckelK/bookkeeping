@@ -87,18 +87,39 @@ class NewNominal:
     bank_account: bool
 
 
+@dataclass
+class Nominal:
+    name: str
+    statement: str
+    heading: str
+    expected_sign: str
+    control_account: bool
+    bank_account: bool
+
+
 class ChartOfAccounts(ABC):
     @abstractmethod
     def add_nominal(self, nominal: NewNominal) -> None:
         """Add a new nominal account to Chart Of Accounts."""
 
+    @property
+    @abstractmethod
+    def nominals(self) -> List[Nominal]:
+        """"""
+
 
 class InMemoryChartOfAccounts(ChartOfAccounts):
     def __init__(self) -> None:
+        self._nominals: Nominal = []
         return
 
     def add_nominal(self, nominal: NewNominal) -> None:
+        self._nominals.append(Nominal(**asdict(nominal)))
         return
+
+    @property
+    def nominals(self) -> List[Nominal]:
+        return [x for x in self._nominals]
 
 
 class GeneralLedger:

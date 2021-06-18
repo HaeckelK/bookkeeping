@@ -6,7 +6,7 @@ import re
 import pandas as pd
 
 from bank import BankLedger
-from general import GeneralLedgerTransactions
+from general import ChartOfAccounts, GeneralLedgerTransactions
 
 
 class ReportWriter(ABC):
@@ -56,7 +56,7 @@ class HTMLReportWriter(ReportWriter):
         df.to_html(os.path.join(self.ledgers_path, "bank_ledger.html"), index=False)
         return
 
-    def write_general_ledger(self, ledger: GeneralLedgerTransactions):
+    def write_general_ledger(self, ledger: GeneralLedgerTransactions, coa: ChartOfAccounts):
         transactions = ledger.list_transactions()
         df = pd.DataFrame([asdict(x) for x in transactions])
         df = df[ledger.columns]
@@ -65,7 +65,8 @@ class HTMLReportWriter(ReportWriter):
 
         # TODO all df manipulations below here should be being created by Statement and Nominal producing
         # classes and passed into new methods of ReportWriter
-        coa_df = load_coa("data/cashbook.xlsx", "coa")
+        coa_df = pd.DataFrame([asdict(x) for x in coa.nominals])
+        coa_df = coa_df.rename(columns={"name": "nominal"})
         balances = df[['nominal', 'amount']].groupby(['nominal']).sum()
         balances = balances.join(coa_df.set_index('nominal'), on='nominal')
         balances = balances.reset_index()[['statement', 'heading', 'nominal', 'amount']]
@@ -96,9 +97,3 @@ class HTMLReportWriter(ReportWriter):
         with open(filename, "w") as f:
             f.write("\n".join(new_html))
         return
-
-
-# TODO move out of this module
-def load_coa(filename: str, sheetname: str):
-    df = pd.read_excel(filename, sheet_name=sheetname, index_col=None)
-    return df

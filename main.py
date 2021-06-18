@@ -458,7 +458,7 @@ def main():
 
     # Reporting
     report_writer.write_bank_ledger(bank_ledger)
-    report_writer.write_general_ledger(general.ledger)
+    report_writer.write_general_ledger(general.ledger, general.chart_of_accounts)
 
     purchase_ledger.df.to_csv("data/purchase_ledger.csv", index=False)
     sales_ledger.df.to_csv("data/sales_ledger.csv", index=False)
