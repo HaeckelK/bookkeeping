@@ -1,5 +1,6 @@
 from dataclasses import dataclass, asdict
 from typing import List, Dict
+from abc import ABC, abstractmethod
 
 import pandas as pd
 
@@ -76,7 +77,27 @@ def convert_date_string_to_period(timestamp) -> int:
         return month
 
 
+@dataclass
+class NewNominal:
+    name: str
+
+
+class ChartOfAccounts(ABC):
+    @abstractmethod
+    def add_nominal(self, nominal: NewNominal) -> None:
+        """Add a new nominal account to Chart Of Accounts."""
+
+
+class InMemoryChartOfAccounts(ChartOfAccounts):
+    def __init__(self) -> None:
+        return
+
+    def add_nominal(self, nominal: NewNominal) -> None:
+        return
+
+
 class GeneralLedger:
-    def __init__(self, ledger: GeneralLedgerTransactions):
+    def __init__(self, ledger: GeneralLedgerTransactions, chart_of_accounts: ChartOfAccounts):
         self.ledger = ledger
+        self.chart_of_accounts = chart_of_accounts
         return

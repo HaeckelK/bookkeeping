@@ -5,19 +5,32 @@ import datetime
 import pandas as pd
 
 from ledger import PandasLedger
-from general import GLJournal, GLJournalLine, GeneralLedgerTransactions, GeneralLedger
+from general import GLJournal, GLJournalLine, GeneralLedgerTransactions, GeneralLedger, InMemoryChartOfAccounts, NewNominal
 from bank import BankTransaction, InMemoryBankLedger, RawBankTransaction
 from reporting import HTMLReportWriter
 
 
-class SourceDataLoader:
-    def load(self, filename: str, sheetname: str):
-        df = pd.read_excel(filename, sheet_name=sheetname, index_col=None)
+class ExcelSourceDataLoader:
+    def __init__(self, filename: str, bank_sheet: str, coa_sheet: str) -> None:
+        self.filename = filename
+        self.bank_sheet = bank_sheet
+        self.coa_sheet = coa_sheet
+
+        self.bank = None
+        self.coa = None
+        return
+
+    def load(self):
+        self.load_bank()
+        return
+
+    def load_bank(self):
+        df = pd.read_excel(self.filename, sheet_name=self.bank_sheet, index_col=None)
         df["amount"] = df["amount"] * 100
         df = df.astype({"amount": "int32"})
         df.insert(0, "raw_id", range(0, 0 + len(df)))
-        # df = df.set_index('raw_id')
-        return df
+        self.bank = df
+        return
 
 
 class SourceDataParser:
@@ -64,6 +77,10 @@ class SourceDataParser:
         df = df.loc[(df["Debtor"].notnull()) & (df["PL"].isnull()) & (df["BS"].isnull())]
         df = df[["raw_id", "date", "amount", "Debtor", "Notes", "bank_code"]]
         return df
+
+    @property
+    def chart_of_accounts_config(self) -> List[NewNominal]:
+        return []
 
 
 @dataclass
@@ -348,20 +365,23 @@ class InterLedgerJournalCreator:
 
 
 def main():
-    data_loader = SourceDataLoader()
+    data_loader = ExcelSourceDataLoader(filename="data/cashbook.xlsx",
+                                        bank_sheet="bank",
+                                        coa_sheet="coa")
     parser = SourceDataParser()
     bank_ledger = InMemoryBankLedger()
     purchase_ledger = PurchaseLedger()
     sales_ledger = SalesLedger()
     general_ledger = GeneralLedgerTransactions()
-    general = GeneralLedger(general_ledger)
+    general = GeneralLedger(ledger=general_ledger,
+                            chart_of_accounts=InMemoryChartOfAccounts())
     inter_ledger_jnl_creator = InterLedgerJournalCreator()
     report_writer = HTMLReportWriter(path="data/html")
 
     print("Bookkeeping Demo")
     print("Load source excel")
-    raw_data = data_loader.load("data/cashbook.xlsx", "bank")
-    parser.register_source_data(raw_data)
+    data_loader.load()
+    parser.register_source_data(data_loader.bank)
 
     bank_transactions = parser.get_bank_transactions()
     settled_invoices = parser.get_settled_invoices()
