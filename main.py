@@ -49,7 +49,7 @@ class SourceDataParser:
         return df
 
     def get_settled_sales_invoices(self):
-        df = self.df[["raw_id", "date", "amount", "Debtor", "PL", "Notes"]]
+        df = self.df[["raw_id", "date", "amount", "Debtor", "PL", "Notes", "bank_code"]]
         df = df.loc[(df["Debtor"].notnull()) & (df["PL"].notnull())]
         return df
 
@@ -202,23 +202,25 @@ class SalesLedger(PandasLedger):
         self.df = pd.DataFrame(columns=self.columns)
         return
 
-    def add_settled_transcations(self, settled_invoices, bank_code: str):
-        batch_id = self.get_next_batch_id()
-        df = settled_invoices.copy()
-        df["batch_id"] = batch_id
-        df["entry_type"] = "bank_receipt"
-        df["amount"] = -df["amount"]
-        df["Notes"] = f"bank receipt {bank_code}"
-        df["gl_jnl"] = False
-        df["settled"] = True
-        self.append(df)
+    def add_settled_transcations(self, settled_invoices):
+        bank_codes = settled_invoices["bank_code"].unique()
+        for bank_code in bank_codes:
+            batch_id = self.get_next_batch_id()
+            df = settled_invoices.copy()
+            df["batch_id"] = batch_id
+            df["entry_type"] = "bank_receipt"
+            df["amount"] = -df["amount"]
+            df["Notes"] = f"bank receipt {bank_code}"
+            df["gl_jnl"] = False
+            df["settled"] = True
+            self.append(df)
 
-        df = settled_invoices.copy()
-        df["batch_id"] = batch_id
-        df["entry_type"] = "sale_invoice"
-        df["gl_jnl"] = False
-        df["settled"] = True
-        self.append(df)
+            df = settled_invoices.copy()
+            df["batch_id"] = batch_id
+            df["entry_type"] = "sale_invoice"
+            df["gl_jnl"] = False
+            df["settled"] = True
+            self.append(df)
         return
 
     def add_receipts(self, payments):
@@ -371,7 +373,7 @@ def main():
     purchase_ledger.add_settled_transcations(settled_invoices)
     purchase_ledger.add_payments(unmatched_payments)
 
-    sales_ledger.add_settled_transcations(settled_sales_invoices, bank_code="nwa_ca")
+    sales_ledger.add_settled_transcations(settled_sales_invoices)
     sales_ledger.add_receipts(unmatched_receipts)
 
     journals = inter_ledger_jnl_creator.create_pl_to_gl_journals(purchase_ledger.get_unposted_invoices())
