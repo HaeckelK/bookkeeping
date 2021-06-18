@@ -6,7 +6,7 @@ import re
 import pandas as pd
 
 from bank import BankLedger
-from general import GeneralLedger
+from general import GeneralLedgerTransactions
 
 
 class ReportWriter(ABC):
@@ -15,7 +15,7 @@ class ReportWriter(ABC):
         """"""
 
     @abstractmethod
-    def write_general_ledger(self, ledger: GeneralLedger):
+    def write_general_ledger(self, ledger: GeneralLedgerTransactions):
         """"""
 
 
@@ -27,7 +27,7 @@ class CSVReportWriter(ReportWriter):
         df.to_csv("ledger_transactions/bank_ledger.csv", index=False)
         return
 
-    def write_general_ledger(self, ledger: GeneralLedger):
+    def write_general_ledger(self, ledger: GeneralLedgerTransactions):
         transactions = ledger.list_transactions()
         df = pd.DataFrame([asdict(x) for x in transactions])
         df = df[ledger.columns]
@@ -56,7 +56,7 @@ class HTMLReportWriter(ReportWriter):
         df.to_html(os.path.join(self.ledgers_path, "bank_ledger.html"), index=False)
         return
 
-    def write_general_ledger(self, ledger: GeneralLedger):
+    def write_general_ledger(self, ledger: GeneralLedgerTransactions):
         transactions = ledger.list_transactions()
         df = pd.DataFrame([asdict(x) for x in transactions])
         df = df[ledger.columns]

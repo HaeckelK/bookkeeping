@@ -32,7 +32,7 @@ class GeneralLedgerTransaction:
     period: int
 
 
-class GeneralLedger(PandasLedger):
+class GeneralLedgerTransactions(PandasLedger):
     def __init__(self) -> None:
         self.columns = ["transaction_id", "jnl_id", "jnl_type", "transaction_date", "period", "nominal", "amount", "description"]
         self.df = pd.DataFrame(columns=self.columns)
@@ -74,3 +74,9 @@ def convert_date_string_to_period(timestamp) -> int:
         return -1
     else:
         return month
+
+
+class GeneralLedger:
+    def __init__(self, ledger: GeneralLedgerTransactions):
+        self.ledger = ledger
+        return
