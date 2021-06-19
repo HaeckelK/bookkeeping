@@ -12,6 +12,7 @@ class NewPurchaseInvoiceLine:
     description: str
     amount: int
     transaction_date: str
+    raw_id: int
 
 
 @dataclass
@@ -69,36 +70,23 @@ class PurchaseLedger(PandasLedger):
         self.df = pd.DataFrame(columns=self.columns)
         return
 
-    def add_settled_transcations(self, settled_invoices):
-        bank_codes = settled_invoices["bank_code"].unique()
-        for bank_code in bank_codes:
-            batch_id = self.get_next_batch_id()
-            df = settled_invoices.copy()
-
-            df["batch_id"] = batch_id
-            df["entry_type"] = "bank_payment"
-            df["notes"] = f"bank payment {bank_code}"
-            df["gl_jnl"] = False
-            df["settled"] = True
-
-            self.append(df)
-
-            df = settled_invoices.copy()
-            df["batch_id"] = batch_id
-            df["amount"] = -df["amount"]
-            df["entry_type"] = "purchase_invoice"
-            df["gl_jnl"] = False
-            df["settled"] = True
-            self.append(df)
-        return
-
     def add_invoices(self, invoices: List[NewPurchaseInvoice]) -> List[int]:
         batch_id = self.get_next_batch_id()
+        transaction_ids = []
         for invoice in invoices:
-            print(invoice.creditor)
-        return []
+            batch_id = self.get_next_batch_id()
+            df = pd.DataFrame([asdict(x) for x in invoice.lines])
+            # TODO rename in ledger definition
+            df = df.rename(columns={"transaction_date": "date", "description": "notes", "nominal": "pl"})
+            df["creditor"] = invoice.creditor
+            df["batch_id"] = batch_id
+            df["entry_type"] = "purchase_invoice"
+            df["gl_jnl"] = False
+            df["settled"] = False
+            transaction_ids.extend(self.append(df))
+        return transaction_ids
 
-    def add_payments(self, payments: List[NewPurchaseLedgerPayment]):
+    def add_payments(self, payments: List[NewPurchaseLedgerPayment]) -> List[int]:
         batch_id = self.get_next_batch_id()
         df = pd.DataFrame([asdict(x) for x in payments])
         df["batch_id"] = batch_id
@@ -108,7 +96,10 @@ class PurchaseLedger(PandasLedger):
         df["settled"] = False
         df["pl"] = None
         df = df.drop(labels="bank_code", axis=1)
-        self.append(df)
+        transaction_ids = self.append(df)
+        return transaction_ids
+
+    def allocate_transactions(self, transaction_ids: List[int]) -> None:
         return
 
     def get_unposted_invoices(self) -> List[PurchaseInvoice]:

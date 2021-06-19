@@ -7,7 +7,7 @@ import pandas as pd
 from ledger import PandasLedger
 from general import GLJournal, GLJournalLine, GeneralLedgerTransactions, GeneralLedger, InMemoryChartOfAccounts, NewNominal
 from bank import BankTransaction, InMemoryBankLedgerTransactions, RawBankTransaction, BankLedger
-from purchases import NewPurchaseInvoice, PurchaseInvoice, PurchaseLedger, NewPurchaseLedgerPayment
+from purchases import NewPurchaseInvoice, PurchaseInvoice, NewPurchaseInvoiceLine, PurchaseLedger, NewPurchaseLedgerPayment
 from sales import SalesLedger, NewSalesLedgerReceipt
 from reporting import HTMLReportWriter
 
@@ -88,13 +88,25 @@ class SourceDataParser:
             lines.append(RawBankTransaction(**transaction))
         return lines
 
-    def get_settled_purchase_invoices(self):
+    def get_settled_purchase_invoices(self) -> List[Tuple[NewPurchaseInvoice, NewPurchaseLedgerPayment]]:
         df = self.bank[["raw_id", "date", "amount", "creditor", "pl", "notes", "bank_code"]]
         df = df.loc[(df["creditor"].notnull()) & (df["pl"].notnull())]
-        return df
 
-    def get_settled_purchase_invoices_new(self) -> List[Tuple[NewPurchaseInvoice, NewPurchaseLedgerPayment]]:
-        return []
+        items = []
+        for line in df.to_dict("record"):
+            pl_lines = [NewPurchaseInvoiceLine(nominal=line["pl"],
+                                               description=line["notes"],
+                                               amount=-line["amount"],
+                                               transaction_date=line["date"],
+                                               raw_id=line["raw_id"])]
+            item = (NewPurchaseInvoice(creditor=line["creditor"], lines=pl_lines),
+                    NewPurchaseLedgerPayment(raw_id=line["raw_id"],
+                                             date=line["date"],
+                                             amount=line["amount"],
+                                             creditor=line["creditor"],
+                                             bank_code=line["bank_code"]))
+            items.append(item)
+        return items
 
     def get_settled_sales_invoices(self):
         df = self.bank[["raw_id", "date", "amount", "debtor", "pl", "notes", "bank_code"]]
@@ -233,13 +245,13 @@ def main():
 
     # Setup financials config
     nominals = parser.chart_of_accounts_config
+    print("\nAdding nominal accounts to COA")
     for nominal in nominals:
-        print(f"Adding nominal to COA: {nominal.name}")
+        print(f"..Adding nominal to COA: {nominal.name}")
         general.chart_of_accounts.add_nominal(nominal)
 
 
     bank_transactions = parser.get_bank_transactions()
-    settled_invoices = parser.get_settled_purchase_invoices()
     settled_sales_invoices = parser.get_settled_sales_invoices()
     unmatched_payments = parser.get_unmatched_payments()
     unmatched_receipts = parser.get_unmatched_receipts()
@@ -247,16 +259,23 @@ def main():
     bank.ledger.add_transactions(bank_transactions)
 
     # Settled Purchase Ledger Invoices
-    purchase_ledger.add_settled_transcations(settled_invoices)
-    settled_pl_invoices = parser.get_settled_purchase_invoices_new()
+    print("\nAdding settled invoices to Purchase Ledger")
+    settled_pl_invoices = parser.get_settled_purchase_invoices()
     for invoice, payment in settled_pl_invoices:
         # Assuming invoice is one line, payment is one line
+        print("..Adding invoices")
         invoice_trans_ids = purchase_ledger.add_invoices([invoice])
+        print("....invoice_trans_ids", invoice_trans_ids)
+        print("..Adding corresponding payments")
         payment_trans_ids = purchase_ledger.add_payments([payment])
-        purchase_ledger.allocate_transactions(invoice_trans_ids.extend(payment_trans_ids))
+        print("....payment_trans_ids", payment_trans_ids)
+        allocation_ids = invoice_trans_ids + payment_trans_ids
+        print("..Allocating transactions", allocation_ids)
+        purchase_ledger.allocate_transactions(allocation_ids)
 
-
-    purchase_ledger.add_payments(unmatched_payments)
+    print("\nAdding unmatched payments to Purchase Ledger")
+    ids = purchase_ledger.add_payments(unmatched_payments)
+    print("Purchase ledger ids:", ids)
 
     sales_ledger.add_settled_transcations(settled_sales_invoices)
     sales_ledger.add_receipts(unmatched_receipts)
