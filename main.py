@@ -101,7 +101,6 @@ class SourceDataParser:
         df = self.bank.copy()
         df = df.loc[(df["creditor"].notnull()) & (df["pl"].isnull()) & (df["bs"].isnull())]
         df = df[["raw_id", "date", "amount", "creditor", "bank_code"]]
-        df = df.rename(columns={"creditor": "creditor"})
         payments = [NewPurchaseLedgerPayment(**x) for x in df.to_dict("record")]
         return payments
 

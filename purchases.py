@@ -77,8 +77,6 @@ class PurchaseLedger(PandasLedger):
     def add_payments(self, payments: List[NewPurchaseLedgerPayment]):
         batch_id = self.get_next_batch_id()
         df = pd.DataFrame([asdict(x) for x in payments])
-        # TODO change columns to lower case in Ledger definition
-        df = df.rename(columns={"creditor": "creditor"})
         df["batch_id"] = batch_id
         df["entry_type"] = "bank_payment"
         df["notes"] = "bank payment " + df["bank_code"]
