@@ -35,7 +35,16 @@ class GeneralLedgerTransaction:
 
 class GeneralLedgerTransactions(PandasLedger):
     def __init__(self) -> None:
-        self.columns = ["transaction_id", "jnl_id", "jnl_type", "transaction_date", "period", "nominal", "amount", "description"]
+        self.columns = [
+            "transaction_id",
+            "jnl_id",
+            "jnl_type",
+            "transaction_date",
+            "period",
+            "nominal",
+            "amount",
+            "description",
+        ]
         self.df = pd.DataFrame(columns=self.columns)
         return
 
@@ -51,7 +60,7 @@ class GeneralLedgerTransactions(PandasLedger):
         df["jnl_type"] = journal.jnl_type
         df["jnl_id"] = self.get_next_journal_id()
         # TODO Period should be supplied with journal
-        df["period"] = df['transaction_date'].apply(convert_date_string_to_period)
+        df["period"] = df["transaction_date"].apply(convert_date_string_to_period)
         self.append(df)
         return
 
@@ -64,7 +73,7 @@ class GeneralLedgerTransactions(PandasLedger):
 
     @property
     def balances(self) -> Dict[str, int]:
-        data = self.df[['nominal', 'amount']].groupby(['nominal']).sum().to_dict()["amount"]
+        data = self.df[["nominal", "amount"]].groupby(["nominal"]).sum().to_dict()["amount"]
         return data
 
 

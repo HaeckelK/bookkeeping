@@ -5,9 +5,22 @@ import datetime
 import pandas as pd
 
 from ledger import PandasLedger
-from general import GLJournal, GLJournalLine, GeneralLedgerTransactions, GeneralLedger, InMemoryChartOfAccounts, NewNominal
+from general import (
+    GLJournal,
+    GLJournalLine,
+    GeneralLedgerTransactions,
+    GeneralLedger,
+    InMemoryChartOfAccounts,
+    NewNominal,
+)
 from bank import BankTransaction, InMemoryBankLedgerTransactions, RawBankTransaction, BankLedger
-from purchases import NewPurchaseInvoice, PurchaseInvoice, NewPurchaseInvoiceLine, PurchaseLedger, NewPurchaseLedgerPayment
+from purchases import (
+    NewPurchaseInvoice,
+    PurchaseInvoice,
+    NewPurchaseInvoiceLine,
+    PurchaseLedger,
+    NewPurchaseLedgerPayment,
+)
 from sales import SalesLedger, NewSalesLedgerReceipt
 from reporting import HTMLReportWriter
 
@@ -40,8 +53,8 @@ class ExcelSourceDataLoader:
 
     def load_coa(self):
         df = pd.read_excel(self.filename, sheet_name=self.coa_sheet, index_col=None)
-        df["control_account"] = df["control_account"].map({'y': True, 'n': False})
-        df["bank_account"] = df["bank_account"].map({'y': True, 'n': False})
+        df["control_account"] = df["control_account"].map({"y": True, "n": False})
+        df["bank_account"] = df["bank_account"].map({"y": True, "n": False})
         self.coa = df
         return
 
@@ -57,15 +70,22 @@ class SourceDataParser:
         """self.coa may not be complete. Add any nominals seen in other sheets."""
         additional_nominals = []
         existing_nominals = self.coa["nominal"].unique()
-        for field in ('bs', 'pl'):
+        for field in ("bs", "pl"):
             for bank_nominal in self.bank[field].unique():
                 if isinstance(bank_nominal, str) is False:
                     continue
                 if bank_nominal in existing_nominals:
                     continue
-                additional_nominals.append({"nominal": bank_nominal, "statement": field.lower(),
-                                            "expected_sign": "dr", "control_account": False,
-                                            "bank_account": False, "heading": "NOMINAL DETAILS MISSING"})
+                additional_nominals.append(
+                    {
+                        "nominal": bank_nominal,
+                        "statement": field.lower(),
+                        "expected_sign": "dr",
+                        "control_account": False,
+                        "bank_account": False,
+                        "heading": "NOMINAL DETAILS MISSING",
+                    }
+                )
         if additional_nominals:
             self.coa = self.coa.append(additional_nominals, ignore_index=True)
         return
@@ -79,7 +99,7 @@ class SourceDataParser:
                 if isinstance(matched_account, str):
                     matched_dict[index] = [matched_account, matched_type.lower()]
 
-        matched = pd.DataFrame.from_dict(matched_dict, orient='index', columns=["matched_account", "matched_type"])
+        matched = pd.DataFrame.from_dict(matched_dict, orient="index", columns=["matched_account", "matched_type"])
 
         df = self.bank[["date", "transaction_type", "description", "amount", "transfer_type", "raw_id", "bank_code"]]
         df = df.join(matched)
@@ -94,17 +114,25 @@ class SourceDataParser:
 
         items = []
         for line in df.to_dict("record"):
-            pl_lines = [NewPurchaseInvoiceLine(nominal=line["pl"],
-                                               description=line["notes"],
-                                               amount=-line["amount"],
-                                               transaction_date=line["date"],
-                                               raw_id=line["raw_id"])]
-            item = (NewPurchaseInvoice(creditor=line["creditor"], lines=pl_lines),
-                    NewPurchaseLedgerPayment(raw_id=line["raw_id"],
-                                             date=line["date"],
-                                             amount=line["amount"],
-                                             creditor=line["creditor"],
-                                             bank_code=line["bank_code"]))
+            pl_lines = [
+                NewPurchaseInvoiceLine(
+                    nominal=line["pl"],
+                    description=line["notes"],
+                    amount=-line["amount"],
+                    transaction_date=line["date"],
+                    raw_id=line["raw_id"],
+                )
+            ]
+            item = (
+                NewPurchaseInvoice(creditor=line["creditor"], lines=pl_lines),
+                NewPurchaseLedgerPayment(
+                    raw_id=line["raw_id"],
+                    date=line["date"],
+                    amount=line["amount"],
+                    creditor=line["creditor"],
+                    bank_code=line["bank_code"],
+                ),
+            )
             items.append(item)
         return items
 
@@ -192,11 +220,13 @@ class InterLedgerJournalCreator:
 
     def create_bank_to_gl_journals(self, transactions: BankTransaction) -> List[GLJournal]:
         df = pd.DataFrame([asdict(x) for x in transactions])
-        df = df[['bank_code', 'matched_type', 'amount']].groupby(['bank_code', 'matched_type']).sum().reset_index()
+        df = df[["bank_code", "matched_type", "amount"]].groupby(["bank_code", "matched_type"]).sum().reset_index()
 
-        lookup = {"creditor": "purchase_ledger_control_account",
-                  "debtor": "sales_ledger_control_account",
-                  "bs": "bank_contra"}
+        lookup = {
+            "creditor": "purchase_ledger_control_account",
+            "debtor": "sales_ledger_control_account",
+            "bs": "bank_contra",
+        }
         journals = []
         for line in df.to_dict("record"):
             bank_code = line["bank_code"]
@@ -215,7 +245,7 @@ class InterLedgerJournalCreator:
                     description="some auto generated description",
                     amount=-amount,
                     transaction_date=datetime.datetime.now(),
-                )
+                ),
             ]
             journal = GLJournal(jnl_type="bank", lines=gl_lines)
             journals.append(journal)
@@ -223,25 +253,21 @@ class InterLedgerJournalCreator:
 
 
 def main():
-    data_loader = ExcelSourceDataLoader(filename="data/cashbook.xlsx",
-                                        bank_sheet="bank",
-                                        coa_sheet="coa")
+    data_loader = ExcelSourceDataLoader(filename="data/cashbook.xlsx", bank_sheet="bank", coa_sheet="coa")
     parser = SourceDataParser()
     bank_ledger = InMemoryBankLedgerTransactions()
     bank = BankLedger(ledger=bank_ledger)
     purchase_ledger = PurchaseLedger()
     sales_ledger = SalesLedger()
     general_ledger = GeneralLedgerTransactions()
-    general = GeneralLedger(ledger=general_ledger,
-                            chart_of_accounts=InMemoryChartOfAccounts())
+    general = GeneralLedger(ledger=general_ledger, chart_of_accounts=InMemoryChartOfAccounts())
     inter_ledger_jnl_creator = InterLedgerJournalCreator()
     report_writer = HTMLReportWriter(path="data/html")
 
     print("Bookkeeping Demo")
     print("Load source excel")
     data_loader.load()
-    parser.register_source_data(bank=data_loader.bank,
-                                coa=data_loader.coa)
+    parser.register_source_data(bank=data_loader.bank, coa=data_loader.coa)
 
     # Setup financials config
     nominals = parser.chart_of_accounts_config
@@ -249,7 +275,6 @@ def main():
     for nominal in nominals:
         print(f"..Adding nominal to COA: {nominal.name}")
         general.chart_of_accounts.add_nominal(nominal)
-
 
     bank_transactions = parser.get_bank_transactions()
     settled_sales_invoices = parser.get_settled_sales_invoices()

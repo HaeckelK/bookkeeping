@@ -47,7 +47,7 @@ class HTMLReportWriter(ReportWriter):
 
         if os.path.exists(self.nominals_path) is False:
             os.makedirs(self.nominals_path)
-        
+
         return
 
     def write_bank_ledger(self, ledger: BankLedgerTransactions):
@@ -57,15 +57,15 @@ class HTMLReportWriter(ReportWriter):
         df.to_html(os.path.join(self.ledgers_path, "bank_ledger.html"), index=False)
         return
 
-# TODO data type PurchaseLedger
-# TODO don't access df directly
+    # TODO data type PurchaseLedger
+    # TODO don't access df directly
     def write_purchase_ledger(self, ledger):
         df = ledger.df
         df.to_html(os.path.join(self.ledgers_path, "purchase_ledger.html"), index=False)
         return
 
-# TODO data type PurchaseLedger
-# TODO don't access df directly
+    # TODO data type PurchaseLedger
+    # TODO don't access df directly
     def write_sales_ledger(self, ledger):
         df = ledger.df
         df.to_html(os.path.join(self.ledgers_path, "sales_ledger.html"), index=False)
@@ -76,19 +76,21 @@ class HTMLReportWriter(ReportWriter):
         df = pd.DataFrame([asdict(x) for x in transactions])
         df = df[ledger.columns]
         df.to_html(os.path.join(self.ledgers_path, "general_ledger.html"), index=False)
-        df['amount'] = df['amount'] / 100
+        df["amount"] = df["amount"] / 100
 
         # TODO all df manipulations below here should be being created by Statement and Nominal producing
         # classes and passed into new methods of ReportWriter
         coa_df = pd.DataFrame([asdict(x) for x in coa.nominals])
         coa_df = coa_df.rename(columns={"name": "nominal"})
-        balances = df[['nominal', 'amount']].groupby(['nominal']).sum()
-        balances = balances.join(coa_df.set_index('nominal'), on='nominal')
-        balances = balances.reset_index()[['statement', 'heading', 'nominal', 'amount']]
+        balances = df[["nominal", "amount"]].groupby(["nominal"]).sum()
+        balances = balances.join(coa_df.set_index("nominal"), on="nominal")
+        balances = balances.reset_index()[["statement", "heading", "nominal", "amount"]]
         balances["nominal"] = balances["nominal"] + "_NOMINAL"
-        balances.sort_values(by=['statement', 'heading', 'nominal']).to_html(os.path.join(self.path, "trial_balance.html"), index=False)
+        balances.sort_values(by=["statement", "heading", "nominal"]).to_html(
+            os.path.join(self.path, "trial_balance.html"), index=False
+        )
 
-        nominals = df['nominal'].unique()
+        nominals = df["nominal"].unique()
         for nominal in nominals:
             nominal_df = df.loc[(df["nominal"] == nominal)]
             nominal_df.to_html(os.path.join(self.nominals_path, f"{nominal}.html"), index=False)
@@ -104,7 +106,9 @@ class HTMLReportWriter(ReportWriter):
             matches = re.findall(regex, line)
             if matches and "_NOMINAL" in line:
                 nominal = matches[0].replace("_NOMINAL", "")
-                new_line = line.replace(nominal + "_NOMINAL", f'<a href="/nominal_transactions/{nominal}.html">{nominal}</a>')
+                new_line = line.replace(
+                    nominal + "_NOMINAL", f'<a href="/nominal_transactions/{nominal}.html">{nominal}</a>'
+                )
                 new_html.append(new_line)
             else:
                 new_html.append(line)
