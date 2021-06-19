@@ -24,14 +24,12 @@ class PurchaseInvoice:
         return sum(x.amount for x in self.lines)
 
 
-# TODO remove notes
 @dataclass
 class NewPurchaseLedgerPayment:
     raw_id: int
     date: str
     amount: int
     creditor: str
-    notes: str
     bank_code: str
 
 
@@ -80,7 +78,7 @@ class PurchaseLedger(PandasLedger):
         batch_id = self.get_next_batch_id()
         df = pd.DataFrame([asdict(x) for x in payments])
         # TODO change columns to lower case in Ledger definition
-        df = df.rename(columns={"creditor": "Creditor", "notes": "Notes"})
+        df = df.rename(columns={"creditor": "Creditor"})
         df["batch_id"] = batch_id
         df["entry_type"] = "bank_payment"
         df["Notes"] = "bank payment " + df["bank_code"]
