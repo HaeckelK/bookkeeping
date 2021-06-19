@@ -8,7 +8,7 @@ from ledger import PandasLedger
 from general import GLJournal, GLJournalLine, GeneralLedgerTransactions, GeneralLedger, InMemoryChartOfAccounts, NewNominal
 from bank import BankTransaction, InMemoryBankLedgerTransactions, RawBankTransaction, BankLedger
 from purchases import PurchaseInvoice, PurchaseLedger, NewPurchaseLedgerPayment
-from sales import SalesLedger
+from sales import SalesLedger, NewSalesLedgerReceipt
 from reporting import HTMLReportWriter
 
 
@@ -105,11 +105,12 @@ class SourceDataParser:
         payments = [NewPurchaseLedgerPayment(**x) for x in df.to_dict("record")]
         return payments
 
-    def get_unmatched_receipts(self):
+    def get_unmatched_receipts(self) -> List[NewSalesLedgerReceipt]:
         df = self.bank.copy()
         df = df.loc[(df["debtor"].notnull()) & (df["pl"].isnull()) & (df["bs"].isnull())]
-        df = df[["raw_id", "date", "amount", "debtor", "notes", "bank_code"]]
-        return df
+        df = df[["raw_id", "date", "amount", "debtor", "bank_code"]]
+        receipts = [NewSalesLedgerReceipt(**x) for x in df.to_dict("record")]
+        return receipts
 
     @property
     def chart_of_accounts_config(self) -> List[NewNominal]:

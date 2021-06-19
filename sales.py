@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import List
 
 import pandas as pd
@@ -22,6 +22,15 @@ class SalesInvoice:
     @property
     def total(self) -> int:
         return sum(x.amount for x in self.lines)
+
+
+@dataclass
+class NewSalesLedgerReceipt:
+    raw_id: int
+    date: str
+    amount: int
+    debtor: str
+    bank_code: str
 
 
 # TODO parent calss for SalesLedger, PurchaseLedger
@@ -64,9 +73,9 @@ class SalesLedger(PandasLedger):
             self.append(df)
         return
 
-    def add_receipts(self, payments):
+    def add_receipts(self, receipts: List[NewSalesLedgerReceipt]):
         batch_id = self.get_next_batch_id()
-        df = payments.copy()
+        df = pd.DataFrame([asdict(x) for x in receipts])
         df["batch_id"] = batch_id
         df["entry_type"] = "bank_receipt"
         df["notes"] = "bank receipt " + df["bank_code"]
