@@ -7,7 +7,7 @@ import pandas as pd
 from ledger import PandasLedger
 from general import GLJournal, GLJournalLine, GeneralLedgerTransactions, GeneralLedger, InMemoryChartOfAccounts, NewNominal
 from bank import BankTransaction, InMemoryBankLedgerTransactions, RawBankTransaction, BankLedger
-from purchases import PurchaseInvoice, PurchaseLedger
+from purchases import PurchaseInvoice, PurchaseLedger, NewPurchaseLedgerPayment
 from reporting import HTMLReportWriter
 
 
@@ -101,6 +101,13 @@ class SourceDataParser:
         df = self.bank.copy()
         df = df.loc[(df["Creditor"].notnull()) & (df["PL"].isnull()) & (df["BS"].isnull())]
         df = df[["raw_id", "date", "amount", "Creditor", "Notes", "bank_code"]]
+
+        temp = df.copy()
+        temp = temp.rename(columns={"Creditor": "creditor", "Notes": "notes"})
+        payments = [NewPurchaseLedgerPayment(**x) for x in temp.to_dict("record")]
+        for payment in payments:
+            print(payment)
+        
         return df
 
     def get_unmatched_receipts(self):

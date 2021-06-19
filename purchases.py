@@ -24,6 +24,17 @@ class PurchaseInvoice:
         return sum(x.amount for x in self.lines)
 
 
+# TODO remove notes
+@dataclass
+class NewPurchaseLedgerPayment:
+    raw_id: int
+    date: str
+    amount: int
+    creditor: str
+    notes: str
+    bank_code: str
+
+
 class PurchaseLedger(PandasLedger):
     def __init__(self) -> None:
         self.columns = [
