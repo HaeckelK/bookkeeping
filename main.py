@@ -457,11 +457,15 @@ def main():
         # TODO update bank_ledger that these have been added to gl
 
     # Reporting
+    print("\nPublishing Report")
+    print("Bank Ledger")
     report_writer.write_bank_ledger(bank_ledger)
+    print("General Ledger")
     report_writer.write_general_ledger(general.ledger, general.chart_of_accounts)
-
-    purchase_ledger.df.to_csv("data/purchase_ledger.csv", index=False)
-    sales_ledger.df.to_csv("data/sales_ledger.csv", index=False)
+    print("Purchase Ledger")
+    report_writer.write_purchase_ledger(purchase_ledger)
+    print("Sales Ledger")
+    report_writer.write_sales_ledger(sales_ledger)
 
     # Validation
     print("Running validation checks")

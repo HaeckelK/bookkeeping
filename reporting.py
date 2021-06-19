@@ -9,6 +9,7 @@ from bank import BankLedger
 from general import ChartOfAccounts, GeneralLedgerTransactions
 
 
+# TODO write methods for all ledgers
 class ReportWriter(ABC):
     @abstractmethod
     def write_bank_ledger(self, ledger: BankLedger):
@@ -54,6 +55,20 @@ class HTMLReportWriter(ReportWriter):
         df = pd.DataFrame([asdict(x) for x in transactions])
         df = df[ledger.columns]
         df.to_html(os.path.join(self.ledgers_path, "bank_ledger.html"), index=False)
+        return
+
+# TODO data type PurchaseLedger
+# TODO don't access df directly
+    def write_purchase_ledger(self, ledger):
+        df = ledger.df
+        df.to_html(os.path.join(self.ledgers_path, "purchase_ledger.html"), index=False)
+        return
+
+# TODO data type PurchaseLedger
+# TODO don't access df directly
+    def write_sales_ledger(self, ledger):
+        df = ledger.df
+        df.to_html(os.path.join(self.ledgers_path, "sales_ledger.html"), index=False)
         return
 
     def write_general_ledger(self, ledger: GeneralLedgerTransactions, coa: ChartOfAccounts):
