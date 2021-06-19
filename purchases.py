@@ -7,6 +7,24 @@ from ledger import PandasLedger
 
 
 @dataclass
+class NewPurchaseInvoiceLine:
+    nominal: str
+    description: str
+    amount: int
+    transaction_date: str
+
+
+@dataclass
+class NewPurchaseInvoice:
+    creditor: str
+    lines: List[NewPurchaseInvoiceLine]
+
+    @property
+    def total(self) -> int:
+        return sum(x.amount for x in self.lines)
+
+
+@dataclass
 class PurchaseInvoiceLine:
     nominal: str
     description: str
@@ -73,6 +91,12 @@ class PurchaseLedger(PandasLedger):
             df["settled"] = True
             self.append(df)
         return
+
+    def add_invoices(self, invoices: List[NewPurchaseInvoice]) -> List[int]:
+        batch_id = self.get_next_batch_id()
+        for invoice in invoices:
+            print(invoice.creditor)
+        return []
 
     def add_payments(self, payments: List[NewPurchaseLedgerPayment]):
         batch_id = self.get_next_batch_id()

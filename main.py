@@ -1,5 +1,5 @@
 from dataclasses import dataclass, asdict
-from typing import List
+from typing import List, Tuple
 import datetime
 
 import pandas as pd
@@ -7,7 +7,7 @@ import pandas as pd
 from ledger import PandasLedger
 from general import GLJournal, GLJournalLine, GeneralLedgerTransactions, GeneralLedger, InMemoryChartOfAccounts, NewNominal
 from bank import BankTransaction, InMemoryBankLedgerTransactions, RawBankTransaction, BankLedger
-from purchases import PurchaseInvoice, PurchaseLedger, NewPurchaseLedgerPayment
+from purchases import NewPurchaseInvoice, PurchaseInvoice, PurchaseLedger, NewPurchaseLedgerPayment
 from sales import SalesLedger, NewSalesLedgerReceipt
 from reporting import HTMLReportWriter
 
@@ -92,6 +92,9 @@ class SourceDataParser:
         df = self.bank[["raw_id", "date", "amount", "creditor", "pl", "notes", "bank_code"]]
         df = df.loc[(df["creditor"].notnull()) & (df["pl"].notnull())]
         return df
+
+    def get_settled_purchase_invoices_new(self) -> List[Tuple[NewPurchaseInvoice, NewPurchaseLedgerPayment]]:
+        return []
 
     def get_settled_sales_invoices(self):
         df = self.bank[["raw_id", "date", "amount", "debtor", "pl", "notes", "bank_code"]]
@@ -243,7 +246,16 @@ def main():
 
     bank.ledger.add_transactions(bank_transactions)
 
+    # Settled Purchase Ledger Invoices
     purchase_ledger.add_settled_transcations(settled_invoices)
+    settled_pl_invoices = parser.get_settled_purchase_invoices_new()
+    for invoice, payment in settled_pl_invoices:
+        # Assuming invoice is one line, payment is one line
+        invoice_trans_ids = purchase_ledger.add_invoices([invoice])
+        payment_trans_ids = purchase_ledger.add_payments([payment])
+        purchase_ledger.allocate_transactions(invoice_trans_ids.extend(payment_trans_ids))
+
+
     purchase_ledger.add_payments(unmatched_payments)
 
     sales_ledger.add_settled_transcations(settled_sales_invoices)
