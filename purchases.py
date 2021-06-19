@@ -100,6 +100,10 @@ class PurchaseLedger(PandasLedger):
         return transaction_ids
 
     def allocate_transactions(self, transaction_ids: List[int]) -> None:
+        # TODO don't allow cross creditor allocation
+        # TODO allocation transactions must sum to zero
+        df = self.df
+        df.loc[(df["transaction_id"].isin(transaction_ids)), "settled"] = True
         return
 
     def get_unposted_invoices(self) -> List[PurchaseInvoice]:
