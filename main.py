@@ -56,7 +56,7 @@ class SourceDataParser:
         """self.coa may not be complete. Add any nominals seen in other sheets."""
         additional_nominals = []
         existing_nominals = self.coa["nominal"].unique()
-        for field in ('BS', 'PL'):
+        for field in ('bs', 'pl'):
             for bank_nominal in self.bank[field].unique():
                 if isinstance(bank_nominal, str) is False:
                     continue
@@ -71,7 +71,7 @@ class SourceDataParser:
 
     def get_bank_transactions(self) -> List[RawBankTransaction]:
         # TODO strip this out as a util manipulation
-        matched = self.bank[["Creditor", "Debtor", "BS"]].copy()
+        matched = self.bank[["creditor", "debtor", "bs"]].copy()
         matched_dict = {}
         for index, line in matched.to_dict("index").items():
             for matched_type, matched_account in line.items():
@@ -88,27 +88,27 @@ class SourceDataParser:
         return lines
 
     def get_settled_invoices(self):
-        df = self.bank[["raw_id", "date", "amount", "Creditor", "PL", "Notes", "bank_code"]]
-        df = df.loc[(df["Creditor"].notnull()) & (df["PL"].notnull())]
+        df = self.bank[["raw_id", "date", "amount", "creditor", "pl", "notes", "bank_code"]]
+        df = df.loc[(df["creditor"].notnull()) & (df["pl"].notnull())]
         return df
 
     def get_settled_sales_invoices(self):
-        df = self.bank[["raw_id", "date", "amount", "Debtor", "PL", "Notes", "bank_code"]]
-        df = df.loc[(df["Debtor"].notnull()) & (df["PL"].notnull())]
+        df = self.bank[["raw_id", "date", "amount", "debtor", "pl", "notes", "bank_code"]]
+        df = df.loc[(df["debtor"].notnull()) & (df["pl"].notnull())]
         return df
 
     def get_unmatched_payments(self) -> List[NewPurchaseLedgerPayment]:
         df = self.bank.copy()
-        df = df.loc[(df["Creditor"].notnull()) & (df["PL"].isnull()) & (df["BS"].isnull())]
-        df = df[["raw_id", "date", "amount", "Creditor", "bank_code"]]
-        df = df.rename(columns={"Creditor": "creditor"})
+        df = df.loc[(df["creditor"].notnull()) & (df["pl"].isnull()) & (df["bs"].isnull())]
+        df = df[["raw_id", "date", "amount", "creditor", "bank_code"]]
+        df = df.rename(columns={"creditor": "creditor"})
         payments = [NewPurchaseLedgerPayment(**x) for x in df.to_dict("record")]
         return payments
 
     def get_unmatched_receipts(self):
         df = self.bank.copy()
-        df = df.loc[(df["Debtor"].notnull()) & (df["PL"].isnull()) & (df["BS"].isnull())]
-        df = df[["raw_id", "date", "amount", "Debtor", "Notes", "bank_code"]]
+        df = df.loc[(df["debtor"].notnull()) & (df["pl"].isnull()) & (df["bs"].isnull())]
+        df = df[["raw_id", "date", "amount", "debtor", "notes", "bank_code"]]
         return df
 
     @property
@@ -148,13 +148,13 @@ class SalesLedger(PandasLedger):
             "raw_id",
             "batch_id",
             "entry_type",
-            "Debtor",
+            "debtor",
             "date",
             "amount",
-            "Notes",
+            "notes",
             "gl_jnl",
             "settled",
-            "PL",
+            "pl",
         ]
         self.df = pd.DataFrame(columns=self.columns)
         return
@@ -167,7 +167,7 @@ class SalesLedger(PandasLedger):
             df["batch_id"] = batch_id
             df["entry_type"] = "bank_receipt"
             df["amount"] = -df["amount"]
-            df["Notes"] = f"bank receipt {bank_code}"
+            df["notes"] = f"bank receipt {bank_code}"
             df["gl_jnl"] = False
             df["settled"] = True
             self.append(df)
@@ -185,10 +185,10 @@ class SalesLedger(PandasLedger):
         df = payments.copy()
         df["batch_id"] = batch_id
         df["entry_type"] = "bank_receipt"
-        df["Notes"] = "bank receipt " + df["bank_code"]
+        df["notes"] = "bank receipt " + df["bank_code"]
         df["gl_jnl"] = False
         df["settled"] = False
-        df["PL"] = None
+        df["pl"] = None
         df = df.drop(labels="bank_code", axis=1)
         self.append(df)
         return
@@ -198,9 +198,9 @@ class SalesLedger(PandasLedger):
         df = df.loc[(df["gl_jnl"] == False) & (df["entry_type"] == "sale_invoice")]
         invoices = []
         for invoice in df.to_dict("records"):
-            credtior = invoice["Debtor"]
-            nominal = invoice["PL"]
-            description = invoice["Notes"]
+            credtior = invoice["debtor"]
+            nominal = invoice["pl"]
+            description = invoice["notes"]
             amount = invoice["amount"]
             transaction_date = invoice["date"]
 

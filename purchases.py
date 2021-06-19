@@ -40,13 +40,13 @@ class PurchaseLedger(PandasLedger):
             "raw_id",
             "batch_id",
             "entry_type",
-            "Creditor",
+            "creditor",
             "date",
             "amount",
-            "Notes",
+            "notes",
             "gl_jnl",
             "settled",
-            "PL",
+            "pl",
         ]
         self.df = pd.DataFrame(columns=self.columns)
         return
@@ -59,7 +59,7 @@ class PurchaseLedger(PandasLedger):
 
             df["batch_id"] = batch_id
             df["entry_type"] = "bank_payment"
-            df["Notes"] = f"bank payment {bank_code}"
+            df["notes"] = f"bank payment {bank_code}"
             df["gl_jnl"] = False
             df["settled"] = True
 
@@ -78,13 +78,13 @@ class PurchaseLedger(PandasLedger):
         batch_id = self.get_next_batch_id()
         df = pd.DataFrame([asdict(x) for x in payments])
         # TODO change columns to lower case in Ledger definition
-        df = df.rename(columns={"creditor": "Creditor"})
+        df = df.rename(columns={"creditor": "creditor"})
         df["batch_id"] = batch_id
         df["entry_type"] = "bank_payment"
-        df["Notes"] = "bank payment " + df["bank_code"]
+        df["notes"] = "bank payment " + df["bank_code"]
         df["gl_jnl"] = False
         df["settled"] = False
-        df["PL"] = None
+        df["pl"] = None
         df = df.drop(labels="bank_code", axis=1)
         self.append(df)
         return
@@ -94,9 +94,9 @@ class PurchaseLedger(PandasLedger):
         df = df.loc[(df["gl_jnl"] == False) & (df["entry_type"] == "purchase_invoice")]
         invoices = []
         for invoice in df.to_dict("records"):
-            credtior = invoice["Creditor"]
-            nominal = invoice["PL"]
-            description = invoice["Notes"]
+            credtior = invoice["creditor"]
+            nominal = invoice["pl"]
+            description = invoice["notes"]
             amount = -invoice["amount"]
             transaction_date = invoice["date"]
 
