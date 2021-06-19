@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import List
 
 import pandas as pd
@@ -76,9 +76,11 @@ class PurchaseLedger(PandasLedger):
             self.append(df)
         return
 
-    def add_payments(self, payments):
+    def add_payments(self, payments: List[NewPurchaseLedgerPayment]):
         batch_id = self.get_next_batch_id()
-        df = payments.copy()
+        df = pd.DataFrame([asdict(x) for x in payments])
+        # TODO change columns to lower case in Ledger definition
+        df = df.rename(columns={"creditor": "Creditor", "notes": "Notes"})
         df["batch_id"] = batch_id
         df["entry_type"] = "bank_payment"
         df["Notes"] = "bank payment " + df["bank_code"]

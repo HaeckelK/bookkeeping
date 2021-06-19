@@ -97,18 +97,13 @@ class SourceDataParser:
         df = df.loc[(df["Debtor"].notnull()) & (df["PL"].notnull())]
         return df
 
-    def get_unmatched_payments(self):
+    def get_unmatched_payments(self) -> List[NewPurchaseLedgerPayment]:
         df = self.bank.copy()
         df = df.loc[(df["Creditor"].notnull()) & (df["PL"].isnull()) & (df["BS"].isnull())]
         df = df[["raw_id", "date", "amount", "Creditor", "Notes", "bank_code"]]
-
-        temp = df.copy()
-        temp = temp.rename(columns={"Creditor": "creditor", "Notes": "notes"})
-        payments = [NewPurchaseLedgerPayment(**x) for x in temp.to_dict("record")]
-        for payment in payments:
-            print(payment)
-        
-        return df
+        df = df.rename(columns={"Creditor": "creditor", "Notes": "notes"})
+        payments = [NewPurchaseLedgerPayment(**x) for x in df.to_dict("record")]
+        return payments
 
     def get_unmatched_receipts(self):
         df = self.bank.copy()
