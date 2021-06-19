@@ -273,7 +273,7 @@ def main():
     nominals = parser.chart_of_accounts_config
     print("\nAdding nominal accounts to COA")
     for nominal in nominals:
-        print(f"..Adding nominal to COA: {nominal.name}")
+        print(f"..{nominal.name}")
         general.chart_of_accounts.add_nominal(nominal)
 
     bank_transactions = parser.get_bank_transactions()
@@ -300,7 +300,7 @@ def main():
 
     print("\nAdding unmatched payments to Purchase Ledger")
     ids = purchase_ledger.add_payments(unmatched_payments)
-    print("Purchase ledger ids:", ids)
+    print("..Purchase ledger ids:", ids)
 
     sales_ledger.add_settled_transcations(settled_sales_invoices)
     sales_ledger.add_receipts(unmatched_receipts)
@@ -322,13 +322,13 @@ def main():
 
     # Reporting
     print("\nPublishing Report")
-    print("Bank Ledger")
+    print("..Bank Ledger")
     report_writer.write_bank_ledger(bank.ledger)
-    print("General Ledger")
+    print("..General Ledger")
     report_writer.write_general_ledger(general.ledger, general.chart_of_accounts)
-    print("Purchase Ledger")
+    print("..Purchase Ledger")
     report_writer.write_purchase_ledger(purchase_ledger)
-    print("Sales Ledger")
+    print("..Sales Ledger")
     report_writer.write_sales_ledger(sales_ledger)
 
     # Validation
