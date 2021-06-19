@@ -5,14 +5,14 @@ import re
 
 import pandas as pd
 
-from bank import BankLedger
+from bank import BankLedgerTransactions
 from general import ChartOfAccounts, GeneralLedgerTransactions
 
 
 # TODO write methods for all ledgers
 class ReportWriter(ABC):
     @abstractmethod
-    def write_bank_ledger(self, ledger: BankLedger):
+    def write_bank_ledger(self, ledger: BankLedgerTransactions):
         """"""
 
     @abstractmethod
@@ -21,7 +21,7 @@ class ReportWriter(ABC):
 
 
 class CSVReportWriter(ReportWriter):
-    def write_bank_ledger(self, ledger: BankLedger):
+    def write_bank_ledger(self, ledger: BankLedgerTransactions):
         transactions = ledger.list_transactions()
         df = pd.DataFrame([asdict(x) for x in transactions])
         df = df[ledger.columns]
@@ -50,7 +50,7 @@ class HTMLReportWriter(ReportWriter):
         
         return
 
-    def write_bank_ledger(self, ledger: BankLedger):
+    def write_bank_ledger(self, ledger: BankLedgerTransactions):
         transactions = ledger.list_transactions()
         df = pd.DataFrame([asdict(x) for x in transactions])
         df = df[ledger.columns]
