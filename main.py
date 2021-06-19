@@ -88,7 +88,7 @@ class SourceDataParser:
             lines.append(RawBankTransaction(**transaction))
         return lines
 
-    def get_settled_invoices(self):
+    def get_settled_purchase_invoices(self):
         df = self.bank[["raw_id", "date", "amount", "creditor", "pl", "notes", "bank_code"]]
         df = df.loc[(df["creditor"].notnull()) & (df["pl"].notnull())]
         return df
@@ -236,7 +236,7 @@ def main():
 
 
     bank_transactions = parser.get_bank_transactions()
-    settled_invoices = parser.get_settled_invoices()
+    settled_invoices = parser.get_settled_purchase_invoices()
     settled_sales_invoices = parser.get_settled_sales_invoices()
     unmatched_payments = parser.get_unmatched_payments()
     unmatched_receipts = parser.get_unmatched_receipts()
