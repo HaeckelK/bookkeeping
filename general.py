@@ -20,6 +20,10 @@ class GLJournal:
     jnl_type: str
     lines: List[GLJournalLine]
 
+    @property
+    def total(self) -> int:
+        return sum(x.amount for x in self.lines)
+
 
 @dataclass
 class GeneralLedgerTransaction:
@@ -55,14 +59,14 @@ class GeneralLedgerTransactions(PandasLedger):
             return 0
         return next_id
 
-    def add_journal(self, journal: GLJournal) -> None:
+    def add_journal(self, journal: GLJournal) -> List[int]:
         df = pd.DataFrame([asdict(x) for x in journal.lines])
         df["jnl_type"] = journal.jnl_type
         df["jnl_id"] = self.get_next_journal_id()
         # TODO Period should be supplied with journal
         df["period"] = df["transaction_date"].apply(convert_date_string_to_period)
-        self.append(df)
-        return
+        transaction_ids = self.append(df)
+        return transaction_ids
 
     def list_transactions(self) -> List[GeneralLedgerTransaction]:
         return [GeneralLedgerTransaction(**x) for x in self.df.to_dict("records")]

@@ -105,6 +105,12 @@ class PurchaseLedger(PandasLedger):
         df = self.df
         df.loc[(df["transaction_id"].isin(transaction_ids)), "settled"] = True
         return
+    
+    def mark_extracted_to_gl(self, transaction_ids: List[int]) -> None:
+        df = self.df
+        # TODO should be a reference back to the gl journal number rather than boolean
+        df.loc[(df["transaction_id"].isin(transaction_ids)), "gl_jnl"] = True
+        return
 
     def get_unposted_invoices(self) -> List[PurchaseInvoice]:
         df = self.df.copy()

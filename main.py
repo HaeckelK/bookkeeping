@@ -305,9 +305,14 @@ def main():
     sales_ledger.add_settled_transcations(settled_sales_invoices)
     sales_ledger.add_receipts(unmatched_receipts)
 
+    print("\nDispersing Purchase Ledger invoice to General Ledger")
     journals = inter_ledger_jnl_creator.create_pl_to_gl_journals(purchase_ledger.get_unposted_invoices())
     for journal in journals:
-        general.ledger.add_journal(journal)
+        print(f"..{journal.jnl_type}: {journal.total}")
+        ids = general.ledger.add_journal(journal)
+        print("....General ledger ids:", ids)
+        print("..marking extracted in Purchase Ledger", ids)
+        purchase_ledger.mark_extracted_to_gl(ids)
         # TODO update purchase_ledger that these have been added to gl
 
     journals = inter_ledger_jnl_creator.create_sl_to_gl_journals(sales_ledger.get_unposted_invoices())
