@@ -305,20 +305,28 @@ def main():
     sales_ledger.add_settled_transcations(settled_sales_invoices)
     sales_ledger.add_receipts(unmatched_receipts)
 
+
     print("\nDispersing Purchase Ledger invoice to General Ledger")
+    # TODO this needs to return List[Tuple[journals, purchase invoice ID]]
+    # Hmm bigger issue here is that there is no link from Purchase Invoice to PL transaction id.
     journals = inter_ledger_jnl_creator.create_pl_to_gl_journals(purchase_ledger.get_unposted_invoices())
     for journal in journals:
         print(f"..{journal.jnl_type}: {journal.total}")
         ids = general.ledger.add_journal(journal)
         print("....General ledger ids:", ids)
         print("..marking extracted in Purchase Ledger", ids)
+        # TODO THIS IS WRONG THESE ARE THE WRONG IDS NEED PL IDS not GL IDS!
         purchase_ledger.mark_extracted_to_gl(ids)
-        # TODO update purchase_ledger that these have been added to gl
 
+    print("\nDispersing Sales Ledger invoice to General Ledger")
     journals = inter_ledger_jnl_creator.create_sl_to_gl_journals(sales_ledger.get_unposted_invoices())
     for journal in journals:
-        general.ledger.add_journal(journal)
-        # TODO update sales_ledger that these have been added to gl
+        print(f"..{journal.jnl_type}: {journal.total}")
+        ids = general.ledger.add_journal(journal)
+        print("....General ledger ids:", ids)
+        print("..marking extracted in Purchase Ledger", ids)
+        sales_ledger.mark_extracted_to_gl(ids)
+
 
     journals = inter_ledger_jnl_creator.create_bank_to_gl_journals(bank.ledger.list_transactions())
     for journal in journals:
