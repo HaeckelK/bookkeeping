@@ -111,7 +111,7 @@ class CSVReportWriter(ReportWriter):
         return
 
 
-class HTMLReportWriter(ReportWriter):
+class HTMLRawReportWriter(ReportWriter):
     def __init__(self, path: str) -> None:
         self.path = path
         self.ledgers_path = os.path.join(self.path, "ledger_transactions")

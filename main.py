@@ -22,7 +22,7 @@ from purchases import (
     NewPurchaseLedgerPayment,
 )
 from sales import SalesLedger, NewSalesLedgerReceipt
-from reporting import HTMLReportWriter
+from reporting import HTMLRawReportWriter
 
 
 class ExcelSourceDataLoader:
@@ -265,7 +265,7 @@ def main():
     general_ledger = GeneralLedgerTransactions()
     general = GeneralLedger(ledger=general_ledger, chart_of_accounts=InMemoryChartOfAccounts())
     inter_ledger_jnl_creator = InterLedgerJournalCreator()
-    report_writer = HTMLReportWriter(path="data/html")
+    report_writer = HTMLRawReportWriter(path="data/html")
 
     print("Bookkeeping Demo")
     print("Load source excel")
