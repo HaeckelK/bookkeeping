@@ -1,12 +1,51 @@
 from abc import ABC, abstractmethod
-from dataclasses import asdict
+from dataclasses import asdict, dataclass
 import os
 import re
+from typing import List
 
 import pandas as pd
 
 from bank import BankLedgerTransactions
 from general import ChartOfAccounts, GeneralLedgerTransactions
+
+
+@dataclass
+class TextLink:
+    display: str
+    link_page_id: str
+
+
+@dataclass
+class NullTextLink(TextLink):
+    display: str = "NA"
+    link_page_id: str = "NA"
+
+
+class Page:
+    def __init__(self, id: str, title: str) -> None:
+        self.id = id
+        self.title = title
+        self.children: List[Page] = []
+        self.parent_link = NullTextLink()
+        return
+
+    def add_child(self, page) -> None:
+        page.parent_link = TextLink(self.title, self.id)
+        self.children.append(page)
+        return
+
+    @property
+    def child_links(self) -> List[TextLink]:
+        return [TextLink(display=x.title, link_page_id=x.id) for x in self.children]
+
+
+class IndexPage(Page):
+    """List of links to other pages."""
+
+
+class StatementPage(Page):
+    """Presents tabular data."""
 
 
 # TODO write methods for all ledgers
