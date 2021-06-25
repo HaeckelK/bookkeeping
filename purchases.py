@@ -31,6 +31,7 @@ class PurchaseInvoiceLine:
     description: str
     amount: int
     transaction_date: str
+    transaction_id: int
 
 
 @dataclass
@@ -41,6 +42,10 @@ class PurchaseInvoice:
     @property
     def total(self) -> int:
         return sum(x.amount for x in self.lines)
+
+    @property
+    def transaction_ids(self) -> List[int]:
+        return [x.transaction_id for x in self.lines]
 
 
 @dataclass
@@ -127,7 +132,8 @@ class PurchaseLedger(PandasLedger):
                 creditor=credtior,
                 lines=[
                     PurchaseInvoiceLine(
-                        nominal=nominal, description=description, amount=amount, transaction_date=transaction_date
+                        nominal=nominal, description=description, amount=amount, transaction_date=transaction_date,
+                        transaction_id=invoice["transaction_id"]
                     )
                 ],
             )

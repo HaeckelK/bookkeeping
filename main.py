@@ -167,9 +167,11 @@ class SourceDataParser:
 
 
 class InterLedgerJournalCreator:
-    def create_pl_to_gl_journals(self, invoices: List[PurchaseInvoice]) -> List[GLJournal]:
+    def create_pl_to_gl_journals(self, invoices: List[PurchaseInvoice]) -> List[Tuple[GLJournal, List[int]]]:
+        output = []
         total = sum(x.total for x in invoices)
         transaction_date = max(line.transaction_date for invoice in invoices for line in invoice.lines)
+        transaction_ids = []
         gl_lines = [
             GLJournalLine(
                 nominal="purchase_ledger_control_account",
@@ -187,10 +189,11 @@ class InterLedgerJournalCreator:
                     transaction_date=line.transaction_date,
                 )
                 gl_lines.append(gl_line)
+                transaction_ids.extend(invoice.transaction_ids)
 
         journal = GLJournal(jnl_type="pi", lines=gl_lines)
-
-        return [journal]
+        output.append((journal, transaction_ids))
+        return output
 
     # TODO DRY see create_pl_to_gl_journals
     def create_sl_to_gl_journals(self, invoices: List[PurchaseInvoice]) -> List[GLJournal]:
@@ -310,13 +313,12 @@ def main():
     # TODO this needs to return List[Tuple[journals, purchase invoice ID]]
     # Hmm bigger issue here is that there is no link from Purchase Invoice to PL transaction id.
     journals = inter_ledger_jnl_creator.create_pl_to_gl_journals(purchase_ledger.get_unposted_invoices())
-    for journal in journals:
+    for journal, transaction_ids in journals:
         print(f"..{journal.jnl_type}: {journal.total}")
         ids = general.ledger.add_journal(journal)
         print("....General ledger ids:", ids)
-        print("..marking extracted in Purchase Ledger", ids)
-        # TODO THIS IS WRONG THESE ARE THE WRONG IDS NEED PL IDS not GL IDS!
-        purchase_ledger.mark_extracted_to_gl(ids)
+        print("..marking extracted in Purchase Ledger", transaction_ids)
+        purchase_ledger.mark_extracted_to_gl(transaction_ids)
 
     print("\nDispersing Sales Ledger invoice to General Ledger")
     journals = inter_ledger_jnl_creator.create_sl_to_gl_journals(sales_ledger.get_unposted_invoices())
@@ -325,7 +327,7 @@ def main():
         ids = general.ledger.add_journal(journal)
         print("....General ledger ids:", ids)
         print("..marking extracted in Purchase Ledger", ids)
-        sales_ledger.mark_extracted_to_gl(ids)
+        # sales_ledger.mark_extracted_to_gl(ids)
 
 
     journals = inter_ledger_jnl_creator.create_bank_to_gl_journals(bank.ledger.list_transactions())
