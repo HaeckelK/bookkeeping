@@ -85,7 +85,7 @@ class MarkdownReportWriter:
  
 
 # TODO write methods for all ledgers
-class ReportWriter(ABC):
+class RawReportWriter(ABC):
     @abstractmethod
     def write_bank_ledger(self, ledger: BankLedgerTransactions):
         """"""
@@ -95,7 +95,7 @@ class ReportWriter(ABC):
         """"""
 
 
-class CSVReportWriter(ReportWriter):
+class CSVRawReportWriter(RawReportWriter):
     def write_bank_ledger(self, ledger: BankLedgerTransactions):
         transactions = ledger.list_transactions()
         df = pd.DataFrame([asdict(x) for x in transactions])
@@ -111,7 +111,7 @@ class CSVReportWriter(ReportWriter):
         return
 
 
-class HTMLRawReportWriter(ReportWriter):
+class HTMLRawReportWriter(RawReportWriter):
     def __init__(self, path: str) -> None:
         self.path = path
         self.ledgers_path = os.path.join(self.path, "ledger_transactions")
@@ -154,7 +154,7 @@ class HTMLRawReportWriter(ReportWriter):
         df["amount"] = df["amount"] / 100
 
         # TODO all df manipulations below here should be being created by Statement and Nominal producing
-        # classes and passed into new methods of ReportWriter
+        # classes and passed into new methods of RawReportWriter
         coa_df = pd.DataFrame([asdict(x) for x in coa.nominals])
         coa_df = coa_df.rename(columns={"name": "nominal"})
         balances = df[["nominal", "amount"]].groupby(["nominal"]).sum()
