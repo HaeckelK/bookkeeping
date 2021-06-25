@@ -1,6 +1,6 @@
-from reporting import IndexPage, StatementPage, Report
+from reporting import IndexPage, StatementPage, Report, MarkdownReportWriter
 
-main_page = IndexPage(id="root", title="Accounts Demo")
+main_page = IndexPage(id="root", title="Demo Accounts Index")
 pl_index = IndexPage(id="pl_index", title="Purchase Ledger Reports")
 gl_index = IndexPage(id="gl_index", title="General Ledger Reports")
 pl_transactions = StatementPage(id="pl_transactions", title="PL Transactions")
@@ -11,7 +11,7 @@ main_page.add_child(gl_index)
 pl_index.add_child(pl_transactions)
 pl_index.add_child(pl_unallocated)
 
-print(main_page.child_links)
-print(pl_unallocated.parent_link)
-
 report = Report(root=main_page, title="My First Report", date_created=999)
+
+writer = MarkdownReportWriter("data\\new_classes")
+writer.write(report)

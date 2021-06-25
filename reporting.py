@@ -55,6 +55,35 @@ class Report:
     date_created: int
 
 
+class MarkdownReportWriter:
+    def __init__(self, path: str) -> None:
+        self.path = path
+        return
+
+    def write(self, report: Report) -> None:
+        print("MarkdownReportWriter begin writing")
+        self.write_page(report.root)
+        return
+
+    def write_page(self, page: Page) -> None:
+        print("Processing", page.title)
+        filename = os.path.join(self.path, page.id + ".md")
+        with open(filename, "w") as f:
+            if isinstance(page.parent_link, NullTextLink) is False:
+                f.write(f"[{page.parent_link.display}]({self.get_link_to_page(page.parent_link.link_page_id)})")
+            f.write(f"\n# {page.title}")
+            for child in page.children:
+                f.write(f"\n- [{child.title}]({self.get_link_to_page(child.id)})")
+
+        for child in page.children:
+            self.write_page(child)
+        return
+
+    def get_link_to_page(self, page_id: str) -> str:
+        # TODO does this need to be based off parent link?
+        return os.path.join(page_id + ".md")
+ 
+
 # TODO write methods for all ledgers
 class ReportWriter(ABC):
     @abstractmethod
