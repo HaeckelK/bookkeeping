@@ -55,28 +55,41 @@ class Report:
     date_created: int
 
 
-class MarkdownReportWriter:
-    def __init__(self, path: str) -> None:
-        self.path = path
-        return
-
+class ReportWriter(ABC):
     def write(self, report: Report) -> None:
-        print("MarkdownReportWriter begin writing")
+        print(f"{type(self)} begin writing")
         self.write_page(report.root)
         return
 
+    @abstractmethod
+    def get_link_to_page(self, page_id: str) -> str:
+        """Return internal link used between output pages created by ReportWriter"""
+
     def write_page(self, page: Page) -> None:
         print("Processing", page.title)
-        filename = os.path.join(self.path, page.id + ".md")
-        with open(filename, "w") as f:
-            if isinstance(page.parent_link, NullTextLink) is False:
-                f.write(f"[{page.parent_link.display}]({self.get_link_to_page(page.parent_link.link_page_id)})")
-            f.write(f"\n# {page.title}")
-            for child in page.children:
-                f.write(f"\n- [{child.title}]({self.get_link_to_page(child.id)})")
-
+        self.create_page_output(page)
         for child in page.children:
             self.write_page(child)
+        return
+
+    def create_page_output(self, page: Page) -> None:
+        filename = os.path.join(self.path, page.id + ".md")
+        body = ""
+        
+        if isinstance(page.parent_link, NullTextLink) is False:
+            body += f"[{page.parent_link.display}]({self.get_link_to_page(page.parent_link.link_page_id)})"
+        body += f"\n# {page.title}"
+        for child in page.children:
+            body += f"\n- [{child.title}]({self.get_link_to_page(child.id)})"
+
+        with open(filename, "w") as f:
+            f.write(body)
+        return
+
+
+class MarkdownReportWriter(ReportWriter):
+    def __init__(self, path: str) -> None:
+        self.path = path
         return
 
     def get_link_to_page(self, page_id: str) -> str:
