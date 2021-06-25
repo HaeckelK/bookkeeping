@@ -48,6 +48,13 @@ class StatementPage(Page):
     """Presents tabular data."""
 
 
+@dataclass
+class Report:
+    root: Page
+    title: str
+    date_created: int
+
+
 # TODO write methods for all ledgers
 class ReportWriter(ABC):
     @abstractmethod
