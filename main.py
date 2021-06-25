@@ -329,7 +329,8 @@ def main():
         print("..marking extracted in Purchase Ledger", ids)
         # sales_ledger.mark_extracted_to_gl(ids)
 
-
+    print("\nDispersing Bank Ledger to General Ledger")
+    # TODO maybe this should only be bank to PL and SL + direct to GL, then from PL and SL to GL
     journals = inter_ledger_jnl_creator.create_bank_to_gl_journals(bank.ledger.list_transactions())
     for journal in journals:
         general.ledger.add_journal(journal)
