@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import List
 
 import numpy as np
 
@@ -21,11 +22,12 @@ class PandasLedger(Ledger):
             return 0
         return next_id
 
-    def append(self, df):
+    def append(self, df) -> List[int]:
         next_id = self.get_next_transaction_id()
-        df["transaction_id"] = np.arange(start=next_id, stop=next_id + df.shape[0])
+        ids = np.arange(start=next_id, stop=next_id + df.shape[0])
+        df["transaction_id"] = ids
         self.df = self.df.append(df[self.columns], ignore_index=True, sort=False)
-        return
+        return list(ids)
 
     def get_next_transaction_id(self) -> int:
         try:

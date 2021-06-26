@@ -27,7 +27,7 @@ class BankTransaction(RawBankTransaction):
     gl_jnl: bool
 
 
-class BankLedger(Ledger):
+class BankLedgerTransactions(Ledger):
     @abstractmethod
     def add_transactions(self, transactions: List[RawBankTransaction]):
         """"""
@@ -37,7 +37,13 @@ class BankLedger(Ledger):
         """"""
 
 
-class InMemoryBankLedger(BankLedger, PandasLedger):
+class BankLedger:
+    def __init__(self, ledger: BankLedgerTransactions):
+        self.ledger = ledger
+        return
+
+
+class InMemoryBankLedgerTransactions(BankLedgerTransactions, PandasLedger):
     def __init__(self) -> None:
         self.columns = [
             "transaction_id",
