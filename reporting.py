@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 import os
 import re
-from typing import List
+from typing import List, Text
 
 import pandas as pd
 
@@ -55,6 +55,7 @@ class Report:
     date_created: int
 
 
+# TODO ReportWriter probably doesn't need to be ABC, its the Buffer class that should be split out?
 class ReportWriter(ABC):
     def write(self, report: Report) -> None:
         print(f"{type(self)} begin writing")
@@ -67,24 +68,48 @@ class ReportWriter(ABC):
 
     def write_page(self, page: Page) -> None:
         print("Processing", page.title)
+        self.current_page = page
         self.create_page_output(page)
         for child in page.children:
             self.write_page(child)
         return
 
     def create_page_output(self, page: Page) -> None:
-        filename = os.path.join(self.path, page.id + ".md")
-        body = ""
-        
-        if isinstance(page.parent_link, NullTextLink) is False:
-            body += f"[{page.parent_link.display}]({self.get_link_to_page(page.parent_link.link_page_id)})"
-        body += f"\n# {page.title}"
-        for child in page.children:
-            body += f"\n- [{child.title}]({self.get_link_to_page(child.id)})"
+        self.reset_buffer()
 
-        with open(filename, "w") as f:
-            f.write(body)
+        if isinstance(page.parent_link, NullTextLink) is False:
+            self.buffer_add_parent_link(TextLink(page.parent_link.display,
+                                                 self.get_link_to_page(page.parent_link.link_page_id)))
+
+        self.buffer_add_title(page.title)
+
+        child_links = []
+        for child in page.children:
+            child_links.append(TextLink(child.title, self.get_link_to_page(child.id)))
+        self.buffer_add_child_links(child_links)
+
+        self.buffer_save()
         return
+
+    @abstractmethod
+    def reset_buffer(self) -> None:
+        """Return buffer to blank state ready for new page information."""
+
+    @abstractmethod
+    def buffer_add_title(self, title: str) -> None:
+        """Add page title to buffer."""
+
+    @abstractmethod
+    def buffer_add_child_links(self, links: List[TextLink]) -> None:
+        """Add list of TextLink to child pages to buffer."""
+
+    @abstractmethod
+    def buffer_add_parent_link(self, link: TextLink) -> None:
+        """Add link to parent page to buffer."""
+
+    @abstractmethod
+    def buffer_save(self) -> None:
+        """Save produced page in final format and medium."""
 
 
 class MarkdownReportWriter(ReportWriter):
@@ -95,6 +120,34 @@ class MarkdownReportWriter(ReportWriter):
     def get_link_to_page(self, page_id: str) -> str:
         # TODO does this need to be based off parent link?
         return os.path.join(page_id + ".md")
+
+    def reset_buffer(self) -> None:
+        """Return buffer to blank state ready for new page information."""
+        self.buffer = ""
+        return
+
+    def buffer_add_title(self, title: str) -> None:
+        """Add page title to buffer."""
+        self.buffer += f"\n# {title}"
+        return
+
+    def buffer_add_child_links(self, links: List[TextLink]) -> None:
+        """Add list of TextLink to child pages to buffer."""
+        for link in links:
+            self.buffer += f"\n- [{link.display}]({link.link_page_id})"
+        return
+
+    def buffer_add_parent_link(self, link: TextLink) -> None:
+        """Add link to parent page to buffer."""
+        self.buffer += f"[{link.display}]({link.link_page_id})"
+        return
+
+    def buffer_save(self) -> None:
+        """Save produced page in final format and medium."""
+        filename = os.path.join(self.path, self.current_page.id + ".md")
+        with open(filename, "w") as f:
+            f.write(self.buffer)
+        return
  
 
 # TODO write methods for all ledgers
