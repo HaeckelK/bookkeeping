@@ -56,6 +56,9 @@ class Report:
 
 
 # TODO ReportWriter probably doesn't need to be ABC, its the Buffer class that should be split out?
+# TODO this should really be a report tree producer and writer which takes a completed tree
+# tricky bit is the creation of internal links etc.
+# TODO Page should just be extended to contain the information held in Buffer.
 class ReportWriter(ABC):
     def write(self, report: Report) -> None:
         print(f"{type(self)} begin writing")
@@ -148,7 +151,73 @@ class MarkdownReportWriter(ReportWriter):
         with open(filename, "w") as f:
             f.write(self.buffer)
         return
- 
+
+
+class HTMLReportWriter(ReportWriter):
+    def __init__(self, path: str) -> None:
+        self.path = path
+        return
+
+    def get_link_to_page(self, page_id: str) -> str:
+        # TODO does this need to be based off parent link?
+        return os.path.join(page_id + ".html")
+
+    def reset_buffer(self) -> None:
+        """Return buffer to blank state ready for new page information."""
+        self.buffer = {}
+        return
+
+    def buffer_add_title(self, title: str) -> None:
+        """Add page title to buffer."""
+        self.buffer["title"] = title
+        return
+
+    def buffer_add_child_links(self, links: List[TextLink]) -> None:
+        """Add list of TextLink to child pages to buffer."""
+        self.buffer["child_links"] = links
+        return
+
+    def buffer_add_parent_link(self, link: TextLink) -> None:
+        """Add link to parent page to buffer."""
+        self.buffer["parent_link"] = link
+        return
+
+    def buffer_save(self) -> None:
+        """Save produced page in final format and medium."""
+        filename = os.path.join(self.path, self.current_page.id + ".html")
+        html = """<html>
+  <head>
+    <title>{TITLE}</title>
+  </head>
+  <body>
+    {PARENT_LINK}
+    <h1>{TITLE}</h1>
+    {CHILD_LINKS}
+  </body>
+</html>"""
+        html = html.replace("{TITLE}", self.buffer["title"])
+        try:
+            parent = self.buffer["parent_link"]
+            parent_link = f'<a href="{parent.link_page_id}">{parent.display}</a>'
+        except KeyError:
+            parent_link = ""
+        if self.buffer["child_links"]:
+            child_links = "<ul>"
+            for link in self.buffer["child_links"]:
+                child_links += "\n<li>"
+                # TODO .html should not already be coming through here?
+                child_links += f'<a href="{self.get_link_to_page(link.link_page_id).replace(".html.html", ".html")}">{link.display}</a>'
+                child_links += "</li>"
+            child_links += "\n</ul>"
+        else:
+            child_links = ""
+        html = html.replace("{PARENT_LINK}", parent_link)
+        html = html.replace("{CHILD_LINKS}", child_links)
+        with open(filename, "w") as f:
+            f.write(html)
+        return
+
+
 
 # TODO write methods for all ledgers
 class RawReportWriter(ABC):

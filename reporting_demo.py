@@ -1,4 +1,4 @@
-from reporting import IndexPage, StatementPage, Report, MarkdownReportWriter
+from reporting import IndexPage, StatementPage, Report, MarkdownReportWriter, HTMLReportWriter
 
 main_page = IndexPage(id="root", title="Demo Accounts Index")
 pl_index = IndexPage(id="pl_index", title="Purchase Ledger Reports")
@@ -14,4 +14,7 @@ pl_index.add_child(pl_unallocated)
 report = Report(root=main_page, title="My First Report", date_created=999)
 
 writer = MarkdownReportWriter("data\\new_classes")
+writer.write(report)
+
+writer = HTMLReportWriter("data\\new_classes")
 writer.write(report)
