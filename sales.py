@@ -16,6 +16,7 @@ class SalesInvoiceLine:
 
 @dataclass
 class SalesInvoice:
+    # TODO rename to debtor
     creditor: str
     lines: List[SalesInvoiceLine]
 
@@ -82,9 +83,29 @@ class SalesLedger(PandasLedger):
         df["gl_jnl"] = False
         df["settled"] = False
         df["pl"] = None
+        df["amount"] = -df["amount"]
         df = df.drop(labels="bank_code", axis=1)
         self.append(df)
         return
+
+    def add_invoices(self, invoices: List[SalesInvoice]) -> List[int]:
+        batch_id = self.get_next_batch_id()
+        transaction_ids = []
+        for invoice in invoices:
+            df = pd.DataFrame([asdict(x) for x in invoice.lines])
+            # TODO rename in ledger definition
+            df = df.rename(columns={"transaction_date": "date", "description": "notes", "nominal": "pl"})
+            df["debtor"] = invoice.creditor
+            df["batch_id"] = batch_id
+            df["entry_type"] = "sale_invoice"
+            df["gl_jnl"] = False
+            df["settled"] = False
+            df["amount"] = -df["amount"]
+            # TODO how to supply with no raw_id
+            df["raw_id"] = -1
+            df["date"] = df["date"].apply(lambda x: pd.to_datetime(x, format='%d/%m/%Y'))
+            transaction_ids.extend(self.append(df))
+        return transaction_ids
 
     def get_unposted_invoices(self) -> List[SalesInvoice]:
         df = self.df.copy()

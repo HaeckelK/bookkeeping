@@ -21,7 +21,7 @@ from purchases import (
     PurchaseLedger,
     NewPurchaseLedgerPayment,
 )
-from sales import SalesLedger, NewSalesLedgerReceipt
+from sales import SalesLedger, NewSalesLedgerReceipt, SalesInvoiceLine, SalesInvoice
 from reporting import HTMLRawReportWriter
 
 
