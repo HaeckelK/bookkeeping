@@ -60,7 +60,6 @@ class SalesLedger(PandasLedger):
             df = settled_invoices.copy()
             df["batch_id"] = batch_id
             df["entry_type"] = "bank_receipt"
-            df["amount"] = -df["amount"]
             df["notes"] = f"bank receipt {bank_code}"
             df["gl_jnl"] = False
             df["settled"] = True
@@ -71,6 +70,7 @@ class SalesLedger(PandasLedger):
             df["entry_type"] = "sale_invoice"
             df["gl_jnl"] = False
             df["settled"] = True
+            df["amount"] = -df["amount"]
             self.append(df)
         return
 
@@ -83,7 +83,6 @@ class SalesLedger(PandasLedger):
         df["gl_jnl"] = False
         df["settled"] = False
         df["pl"] = None
-        df["amount"] = -df["amount"]
         df = df.drop(labels="bank_code", axis=1)
         self.append(df)
         return
@@ -115,7 +114,7 @@ class SalesLedger(PandasLedger):
             credtior = invoice["debtor"]
             nominal = invoice["pl"]
             description = invoice["notes"]
-            amount = invoice["amount"]
+            amount = -invoice["amount"]
             transaction_date = invoice["date"]
 
             purchase_invoice = SalesInvoice(
