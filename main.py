@@ -361,7 +361,7 @@ def entity_loop(filename: str, entity_name: str):
     general_ledger = GeneralLedgerTransactions()
     general = GeneralLedger(ledger=general_ledger, chart_of_accounts=InMemoryChartOfAccounts())
     inter_ledger_jnl_creator = InterLedgerJournalCreator()
-    report_writer = HTMLRawReportWriter(path="data/html")
+    report_writer = HTMLRawReportWriter(path=f"data/html/{entity_name}")
 
     print("Bookkeeping Demo")
     print("Load source excel")
