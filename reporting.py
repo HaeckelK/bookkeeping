@@ -300,29 +300,41 @@ class HTMLRawReportWriter(RawReportWriter):
             os.path.join(self.path, "trial_balance.html"), index=False
         )
 
+        balances_period = df[["nominal", "period", "amount"]].groupby(["nominal", "period"]).sum()
+        balances_period = balances_period.reset_index().pivot(index="nominal", columns='period', values='amount').reset_index()
+        balances_period = balances_period.join(coa_df[["statement", "heading", "nominal"]].set_index("nominal"), on="nominal")
+        cols = ["statement", "heading", "nominal"] + [col for col in balances_period if col not in ["statement", "heading", "nominal"]]
+        balances_period = balances_period.reset_index()[cols]
+        balances_period = balances_period.fillna(0)
+        balances_period["nominal"] = balances_period["nominal"] + "_NOMINAL"
+        balances_period.sort_values(by=["statement", "heading", "nominal"]).to_html(
+            os.path.join(self.path, "trial_balance_period_movement.html"), index=False
+        )
+
         nominals = df["nominal"].unique()
         for nominal in nominals:
             nominal_df = df.loc[(df["nominal"] == nominal)]
             nominal_df.to_html(os.path.join(self.nominals_path, f"{nominal}.html"), index=False)
 
         # Hack to add links to prebuilt to_html table
-        filename = os.path.join(self.path, "trial_balance.html")
-        with open(filename, "r") as f:
-            html = f.read().splitlines()
+        for basename in ("trial_balance.html", "trial_balance_period_movement.html"):
+            filename = os.path.join(self.path, basename)
+            with open(filename, "r") as f:
+                html = f.read().splitlines()
 
-        regex = r"<td>(\D+)<\/td>"
-        new_html = []
-        for line in html:
-            matches = re.findall(regex, line)
-            if matches and "_NOMINAL" in line:
-                nominal = matches[0].replace("_NOMINAL", "")
-                new_line = line.replace(
-                    nominal + "_NOMINAL", f'<a href="/nominal_transactions/{nominal}.html">{nominal}</a>'
-                )
-                new_html.append(new_line)
-            else:
-                new_html.append(line)
+            regex = r"<td>(\D+)<\/td>"
+            new_html = []
+            for line in html:
+                matches = re.findall(regex, line)
+                if matches and "_NOMINAL" in line:
+                    nominal = matches[0].replace("_NOMINAL", "")
+                    new_line = line.replace(
+                        nominal + "_NOMINAL", f'<a href="/nominal_transactions/{nominal}.html">{nominal}</a>'
+                    )
+                    new_html.append(new_line)
+                else:
+                    new_html.append(line)
 
-        with open(filename, "w") as f:
-            f.write("\n".join(new_html))
+            with open(filename, "w") as f:
+                f.write("\n".join(new_html))
         return
