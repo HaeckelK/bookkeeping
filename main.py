@@ -156,6 +156,11 @@ class SourceDataParser:
         return receipts
 
     @property
+    def sales_invoices(self) -> List[SalesInvoice]:
+        invoices = []
+        return invoices
+
+    @property
     def chart_of_accounts_config(self) -> List[NewNominal]:
         # TODO get accounts not listed in COA sheet, look at bank sheet too
         nominals = []
@@ -281,6 +286,7 @@ def main():
 
     bank_transactions = parser.get_bank_transactions()
     settled_sales_invoices = parser.get_settled_sales_invoices()
+    sales_invoices = parser.sales_invoices
     unmatched_payments = parser.get_unmatched_payments()
     unmatched_receipts = parser.get_unmatched_receipts()
 
@@ -307,7 +313,8 @@ def main():
 
     sales_ledger.add_settled_transcations(settled_sales_invoices)
     sales_ledger.add_receipts(unmatched_receipts)
-
+    print("Adding Sales Ledger Invoices")
+    sales_ledger.add_invoices(sales_invoices)
 
     print("\nDispersing Purchase Ledger invoice to General Ledger")
     # TODO this needs to return List[Tuple[journals, purchase invoice ID]]

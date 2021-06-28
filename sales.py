@@ -99,7 +99,6 @@ class SalesLedger(PandasLedger):
             df["entry_type"] = "sale_invoice"
             df["gl_jnl"] = False
             df["settled"] = False
-            df["amount"] = -df["amount"]
             # TODO how to supply with no raw_id
             df["raw_id"] = -1
             df["date"] = df["date"].apply(lambda x: pd.to_datetime(x, format='%d/%m/%Y'))
