@@ -21,18 +21,22 @@ from purchases import (
     PurchaseLedger,
     NewPurchaseLedgerPayment,
 )
-from sales import SalesLedger, NewSalesLedgerReceipt
+from sales import SalesLedger, NewSalesLedgerReceipt, SalesInvoiceLine, SalesInvoice
 from reporting import HTMLRawReportWriter
 
 
 class ExcelSourceDataLoader:
-    def __init__(self, filename: str, bank_sheet: str, coa_sheet: str) -> None:
+    def __init__(self, filename: str, bank_sheet: str, coa_sheet: str, si_headers_sheet: str, si_lines_sheet: str) -> None:
         self.filename = filename
         self.bank_sheet = bank_sheet
         self.coa_sheet = coa_sheet
+        self.si_headers_sheet = si_headers_sheet
+        self.si_lines_sheet = si_lines_sheet
 
         self.bank = None
         self.coa = None
+        self.sales_invoice_headers = None
+        self.sales_invoice_lines = None
         return
 
     def load(self):
@@ -40,6 +44,10 @@ class ExcelSourceDataLoader:
         self.load_bank()
         print("Loading COA Sheet")
         self.load_coa()
+        print("Loading Sales Invoice Headers")
+        self.load_sales_invoice_headers()
+        print("Loading Sales Invoice Lines")
+        self.load_sales_invoice_lines()
         return
 
     def load_bank(self):
@@ -58,11 +66,26 @@ class ExcelSourceDataLoader:
         self.coa = df
         return
 
+    def load_sales_invoice_headers(self):
+        df = pd.read_excel(self.filename, sheet_name=self.si_headers_sheet, index_col=None)
+        self.sales_invoice_headers = df
+        return
+
+    def load_sales_invoice_lines(self):
+        df = pd.read_excel(self.filename, sheet_name=self.si_lines_sheet, index_col=None)
+        df["amount"] = df["amount"] * 100
+        df = df.astype({"amount": "int32"})
+        df.insert(0, "line_id", range(0, 0 + len(df)))
+        self.sales_invoice_lines = df
+        return
+
 
 class SourceDataParser:
-    def register_source_data(self, bank, coa) -> None:
+    def register_source_data(self, bank, coa, sales_invoice_headers, sales_invoice_lines) -> None:
         self.bank = bank
         self.coa = coa
+        self.sales_invoice_headers = sales_invoice_headers
+        self.sales_invoice_lines = sales_invoice_lines
         self.extend_coa()
         return
 
@@ -154,6 +177,24 @@ class SourceDataParser:
         df = df[["raw_id", "date", "amount", "debtor", "bank_code"]]
         receipts = [NewSalesLedgerReceipt(**x) for x in df.to_dict("record")]
         return receipts
+
+    @property
+    def sales_invoices(self) -> List[SalesInvoice]:
+        headers = self.sales_invoice_headers.to_dict("record")
+        all_lines = self.sales_invoice_lines.to_dict("record")
+
+        invoices = []
+        for header in headers:
+            raw_lines = [x for x in all_lines if x["header_id"] == header["id"]]
+            lines = []
+            for raw_line in raw_lines:
+                lines.append(SalesInvoiceLine(raw_line["nominal"],
+                                             raw_line["description"],
+                                             raw_line["amount"],
+                                             raw_line["transaction_date"]))
+            invoice = SalesInvoice(header["debtor"], lines=lines)
+            invoices.append(invoice)
+        return invoices
 
     @property
     def chart_of_accounts_config(self) -> List[NewNominal]:
@@ -256,7 +297,9 @@ class InterLedgerJournalCreator:
 
 
 def main():
-    data_loader = ExcelSourceDataLoader(filename="data/cashbook.xlsx", bank_sheet="bank", coa_sheet="coa")
+    data_loader = ExcelSourceDataLoader(filename="data/cashbook.xlsx", bank_sheet="bank", coa_sheet="coa",
+                                        si_headers_sheet="sales_invoice_headers",
+                                        si_lines_sheet="sales_invoice_lines")
     parser = SourceDataParser()
     bank_ledger = InMemoryBankLedgerTransactions()
     bank = BankLedger(ledger=bank_ledger)
@@ -270,7 +313,9 @@ def main():
     print("Bookkeeping Demo")
     print("Load source excel")
     data_loader.load()
-    parser.register_source_data(bank=data_loader.bank, coa=data_loader.coa)
+    parser.register_source_data(bank=data_loader.bank, coa=data_loader.coa,
+                                sales_invoice_headers=data_loader.sales_invoice_headers,
+                                sales_invoice_lines=data_loader.sales_invoice_lines)
 
     # Setup financials config
     nominals = parser.chart_of_accounts_config
@@ -281,6 +326,7 @@ def main():
 
     bank_transactions = parser.get_bank_transactions()
     settled_sales_invoices = parser.get_settled_sales_invoices()
+    sales_invoices = parser.sales_invoices
     unmatched_payments = parser.get_unmatched_payments()
     unmatched_receipts = parser.get_unmatched_receipts()
 
@@ -307,7 +353,8 @@ def main():
 
     sales_ledger.add_settled_transcations(settled_sales_invoices)
     sales_ledger.add_receipts(unmatched_receipts)
-
+    print("Adding Sales Ledger Invoices")
+    sales_ledger.add_invoices(sales_invoices)
 
     print("\nDispersing Purchase Ledger invoice to General Ledger")
     # TODO this needs to return List[Tuple[journals, purchase invoice ID]]
