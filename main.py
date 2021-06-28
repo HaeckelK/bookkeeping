@@ -1,6 +1,8 @@
 from dataclasses import dataclass, asdict
 from typing import List, Tuple
 import datetime
+import os
+import re
 
 import pandas as pd
 
@@ -23,6 +25,12 @@ from purchases import (
 )
 from sales import SalesLedger, NewSalesLedgerReceipt, SalesInvoiceLine, SalesInvoice
 from reporting import HTMLRawReportWriter
+
+
+@dataclass
+class EntityData:
+    name: str
+    cashbook: str
 
 
 class ExcelSourceDataLoader:
@@ -339,7 +347,7 @@ class InterLedgerJournalCreator:
         return journals
 
 
-def entity_loop(filename: str):
+def entity_loop(filename: str, entity_name: str):
     data_loader = ExcelSourceDataLoader(filename=filename, bank_sheet="bank", coa_sheet="coa",
                                         si_headers_sheet="sales_invoice_headers",
                                         si_lines_sheet="sales_invoice_lines",
@@ -471,9 +479,22 @@ def entity_loop(filename: str):
     return
 
 
+def get_entities_data(folder: str) -> List[EntityData]:
+    print("Identifying entity cashbooks")
+    entities = []
+    for cashbook in os.listdir(folder):
+        name = re.match(r"cashbook_(.*).xlsx", cashbook).groups()[0]
+        filename = os.path.join(folder, cashbook)
+        entity = EntityData(name=name, cashbook=filename)
+        entities.append(entity)
+    return entities
+
+
 def main():
-    filename = "data/cashbooks/cashbook.xlsx"
-    entity_loop(filename=filename)
+    entities_data = get_entities_data("data/cashbooks")
+    for entity in entities_data:
+        print(f"\nProcessing Entity: {entity.name}")
+        entity_loop(filename=entity.cashbook, entity_name=entity.name)
     return
 
 
