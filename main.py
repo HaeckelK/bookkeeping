@@ -339,8 +339,8 @@ class InterLedgerJournalCreator:
         return journals
 
 
-def main():
-    data_loader = ExcelSourceDataLoader(filename="data/cashbooks/cashbook.xlsx", bank_sheet="bank", coa_sheet="coa",
+def entity_loop(filename: str):
+    data_loader = ExcelSourceDataLoader(filename=filename, bank_sheet="bank", coa_sheet="coa",
                                         si_headers_sheet="sales_invoice_headers",
                                         si_lines_sheet="sales_invoice_lines",
                                         gl_jnl_headers_sheet="gl_journal_headers",
@@ -468,6 +468,12 @@ def main():
 
     # TODO validate num raw transactions vs num bank ledger transactions
 
+    return
+
+
+def main():
+    filename = "data/cashbooks/cashbook.xlsx"
+    entity_loop(filename=filename)
     return
 
 
