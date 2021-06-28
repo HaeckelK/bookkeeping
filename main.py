@@ -26,17 +26,22 @@ from reporting import HTMLRawReportWriter
 
 
 class ExcelSourceDataLoader:
-    def __init__(self, filename: str, bank_sheet: str, coa_sheet: str, si_headers_sheet: str, si_lines_sheet: str) -> None:
+    def __init__(self, filename: str, bank_sheet: str, coa_sheet: str, si_headers_sheet: str, si_lines_sheet: str,
+                 gl_jnl_headers_sheet: str, gl_jnl_lines_sheet: str) -> None:
         self.filename = filename
         self.bank_sheet = bank_sheet
         self.coa_sheet = coa_sheet
         self.si_headers_sheet = si_headers_sheet
         self.si_lines_sheet = si_lines_sheet
+        self.gl_jnl_headers_sheet = gl_jnl_headers_sheet
+        self.gl_jnl_lines_sheet = gl_jnl_lines_sheet
 
         self.bank = None
         self.coa = None
         self.sales_invoice_headers = None
         self.sales_invoice_lines = None
+        self.gl_journal_headers = None
+        self.gl_journal_lines = None
         return
 
     def load(self):
@@ -48,6 +53,10 @@ class ExcelSourceDataLoader:
         self.load_sales_invoice_headers()
         print("Loading Sales Invoice Lines")
         self.load_sales_invoice_lines()
+        print("Loading GL Journal Headers")
+        self.load_gl_journal_headers()
+        print("Loading GL Journal Lines")
+        self.load_gl_journal_lines()
         return
 
     def load_bank(self):
@@ -79,13 +88,29 @@ class ExcelSourceDataLoader:
         self.sales_invoice_lines = df
         return
 
+    def load_gl_journal_headers(self):
+        df = pd.read_excel(self.filename, sheet_name=self.gl_jnl_headers_sheet, index_col=None)
+        self.gl_journal_headers = df
+        return
+
+    def load_gl_journal_lines(self):
+        df = pd.read_excel(self.filename, sheet_name=self.gl_jnl_lines_sheet, index_col=None)
+        df["amount"] = df["amount"] * 100
+        df = df.astype({"amount": "int32"})
+        df.insert(0, "line_id", range(0, 0 + len(df)))
+        self.gl_journal_lines = df
+        return
+
 
 class SourceDataParser:
-    def register_source_data(self, bank, coa, sales_invoice_headers, sales_invoice_lines) -> None:
+    def register_source_data(self, bank, coa, sales_invoice_headers, sales_invoice_lines,
+                             gl_journal_headers, gl_journal_lines) -> None:
         self.bank = bank
         self.coa = coa
         self.sales_invoice_headers = sales_invoice_headers
         self.sales_invoice_lines = sales_invoice_lines
+        self.gl_journal_headers = gl_journal_headers
+        self.gl_journal_lines = gl_journal_lines
         self.extend_coa()
         return
 
@@ -197,6 +222,24 @@ class SourceDataParser:
         return invoices
 
     @property
+    def gl_journals(self) -> List[GLJournal]:
+        headers = self.gl_journal_headers.to_dict("record")
+        all_lines = self.gl_journal_lines.to_dict("record")
+
+        invoices = []
+        for header in headers:
+            raw_lines = [x for x in all_lines if x["header_id"] == header["id"]]
+            lines = []
+            for raw_line in raw_lines:
+                lines.append(GLJournalLine(raw_line["nominal"],
+                                           raw_line["description"],
+                                           raw_line["amount"],
+                                           raw_line["transaction_date"]))
+            invoice = GLJournal(header["jnl_type"], lines=lines)
+            invoices.append(invoice)
+        return invoices
+
+    @property
     def chart_of_accounts_config(self) -> List[NewNominal]:
         # TODO get accounts not listed in COA sheet, look at bank sheet too
         nominals = []
@@ -299,7 +342,9 @@ class InterLedgerJournalCreator:
 def main():
     data_loader = ExcelSourceDataLoader(filename="data/cashbook.xlsx", bank_sheet="bank", coa_sheet="coa",
                                         si_headers_sheet="sales_invoice_headers",
-                                        si_lines_sheet="sales_invoice_lines")
+                                        si_lines_sheet="sales_invoice_lines",
+                                        gl_jnl_headers_sheet="gl_journal_headers",
+                                        gl_jnl_lines_sheet="gl_journal_lines")
     parser = SourceDataParser()
     bank_ledger = InMemoryBankLedgerTransactions()
     bank = BankLedger(ledger=bank_ledger)
@@ -315,7 +360,9 @@ def main():
     data_loader.load()
     parser.register_source_data(bank=data_loader.bank, coa=data_loader.coa,
                                 sales_invoice_headers=data_loader.sales_invoice_headers,
-                                sales_invoice_lines=data_loader.sales_invoice_lines)
+                                sales_invoice_lines=data_loader.sales_invoice_lines,
+                                gl_journal_headers=data_loader.gl_journal_headers,
+                                gl_journal_lines=data_loader.gl_journal_lines)
 
     # Setup financials config
     nominals = parser.chart_of_accounts_config
@@ -325,6 +372,7 @@ def main():
         general.chart_of_accounts.add_nominal(nominal)
 
     bank_transactions = parser.get_bank_transactions()
+    gl_journals = parser.gl_journals
     settled_sales_invoices = parser.get_settled_sales_invoices()
     sales_invoices = parser.sales_invoices
     unmatched_payments = parser.get_unmatched_payments()
@@ -382,6 +430,10 @@ def main():
     for journal in journals:
         general.ledger.add_journal(journal)
         # TODO update bank_ledger that these have been added to gl
+
+    print("\nPosting GL Journals")
+    for journal in gl_journals:
+        general.ledger.add_journal(journal)
 
     # Reporting
     print("\nPublishing Report")
