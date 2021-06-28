@@ -26,13 +26,16 @@ from reporting import HTMLRawReportWriter
 
 
 class ExcelSourceDataLoader:
-    def __init__(self, filename: str, bank_sheet: str, coa_sheet: str) -> None:
+    def __init__(self, filename: str, bank_sheet: str, coa_sheet: str, si_headers_sheet: str) -> None:
         self.filename = filename
         self.bank_sheet = bank_sheet
         self.coa_sheet = coa_sheet
+        self.si_headers_sheet = si_headers_sheet
 
         self.bank = None
         self.coa = None
+        self.sales_invoice_headers = None
+        self.sales_invoice_lines = None
         return
 
     def load(self):
@@ -40,6 +43,8 @@ class ExcelSourceDataLoader:
         self.load_bank()
         print("Loading COA Sheet")
         self.load_coa()
+        print("Loading Sales Invoice Headers")
+        self.load_sales_invoice_headers()
         return
 
     def load_bank(self):
@@ -58,11 +63,18 @@ class ExcelSourceDataLoader:
         self.coa = df
         return
 
+    def load_sales_invoice_headers(self):
+        df = pd.read_excel(self.filename, sheet_name=self.si_headers_sheet, index_col=None)
+        self.sales_invoice_headers = df
+        return
+
 
 class SourceDataParser:
-    def register_source_data(self, bank, coa) -> None:
+    def register_source_data(self, bank, coa, sales_invoice_headers, sales_invoice_lines) -> None:
         self.bank = bank
         self.coa = coa
+        self.sales_invoice_headers = sales_invoice_headers
+        self.sales_invoice_lines = sales_invoice_lines
         self.extend_coa()
         return
 
@@ -261,7 +273,8 @@ class InterLedgerJournalCreator:
 
 
 def main():
-    data_loader = ExcelSourceDataLoader(filename="data/cashbook.xlsx", bank_sheet="bank", coa_sheet="coa")
+    data_loader = ExcelSourceDataLoader(filename="data/cashbook.xlsx", bank_sheet="bank", coa_sheet="coa",
+                                        si_headers_sheet="sales_invoice_headers")
     parser = SourceDataParser()
     bank_ledger = InMemoryBankLedgerTransactions()
     bank = BankLedger(ledger=bank_ledger)
@@ -275,7 +288,9 @@ def main():
     print("Bookkeeping Demo")
     print("Load source excel")
     data_loader.load()
-    parser.register_source_data(bank=data_loader.bank, coa=data_loader.coa)
+    parser.register_source_data(bank=data_loader.bank, coa=data_loader.coa,
+                                sales_invoice_headers=data_loader.sales_invoice_headers,
+                                sales_invoice_lines=data_loader.sales_invoice_lines)
 
     # Setup financials config
     nominals = parser.chart_of_accounts_config
