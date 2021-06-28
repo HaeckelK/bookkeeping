@@ -26,11 +26,12 @@ from reporting import HTMLRawReportWriter
 
 
 class ExcelSourceDataLoader:
-    def __init__(self, filename: str, bank_sheet: str, coa_sheet: str, si_headers_sheet: str) -> None:
+    def __init__(self, filename: str, bank_sheet: str, coa_sheet: str, si_headers_sheet: str, si_lines_sheet: str) -> None:
         self.filename = filename
         self.bank_sheet = bank_sheet
         self.coa_sheet = coa_sheet
         self.si_headers_sheet = si_headers_sheet
+        self.si_lines_sheet = si_lines_sheet
 
         self.bank = None
         self.coa = None
@@ -45,6 +46,8 @@ class ExcelSourceDataLoader:
         self.load_coa()
         print("Loading Sales Invoice Headers")
         self.load_sales_invoice_headers()
+        print("Loading Sales Invoice Lines")
+        self.load_sales_invoice_lines()
         return
 
     def load_bank(self):
@@ -66,6 +69,14 @@ class ExcelSourceDataLoader:
     def load_sales_invoice_headers(self):
         df = pd.read_excel(self.filename, sheet_name=self.si_headers_sheet, index_col=None)
         self.sales_invoice_headers = df
+        return
+
+    def load_sales_invoice_lines(self):
+        df = pd.read_excel(self.filename, sheet_name=self.si_lines_sheet, index_col=None)
+        df["amount"] = df["amount"] * 100
+        df = df.astype({"amount": "int32"})
+        df.insert(0, "line_id", range(0, 0 + len(df)))
+        self.sales_invoice_lines = df
         return
 
 
@@ -169,7 +180,20 @@ class SourceDataParser:
 
     @property
     def sales_invoices(self) -> List[SalesInvoice]:
+        headers = self.sales_invoice_headers.to_dict("record")
+        all_lines = self.sales_invoice_lines.to_dict("record")
+
         invoices = []
+        for header in headers:
+            raw_lines = [x for x in all_lines if x["header_id"] == header["id"]]
+            lines = []
+            for raw_line in raw_lines:
+                lines.append(SalesInvoiceLine(raw_line["nominal"],
+                                             raw_line["description"],
+                                             raw_line["amount"],
+                                             raw_line["transaction_date"]))
+            invoice = SalesInvoice(header["debtor"], lines=lines)
+            invoices.append(invoice)
         return invoices
 
     @property
@@ -274,7 +298,8 @@ class InterLedgerJournalCreator:
 
 def main():
     data_loader = ExcelSourceDataLoader(filename="data/cashbook.xlsx", bank_sheet="bank", coa_sheet="coa",
-                                        si_headers_sheet="sales_invoice_headers")
+                                        si_headers_sheet="sales_invoice_headers",
+                                        si_lines_sheet="sales_invoice_lines")
     parser = SourceDataParser()
     bank_ledger = InMemoryBankLedgerTransactions()
     bank = BankLedger(ledger=bank_ledger)
