@@ -331,17 +331,18 @@ class InterLedgerJournalCreator:
             amount = -line["amount"]
             gl_account = lookup[line["matched_type"]]
             transcation_date = line["date"]
+            description = f"{bank_code} to {gl_account}"
 
             gl_lines = [
                 GLJournalLine(
                     nominal=bank_code,
-                    description="some auto generated description",
+                    description=description,
                     amount=amount,
                     transaction_date=transcation_date,
                 ),
                 GLJournalLine(
                     nominal=gl_account,
-                    description="some auto generated description",
+                    description=description,
                     amount=-amount,
                     transaction_date=transcation_date,
                 ),
