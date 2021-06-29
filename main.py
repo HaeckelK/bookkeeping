@@ -267,7 +267,7 @@ class InterLedgerJournalCreator:
         gl_lines = [
             GLJournalLine(
                 nominal="purchase_ledger_control_account",
-                description="some auto generated description",
+                description="PL dispersal to GL",
                 amount=-total,
                 transaction_date=transaction_date,
             )
