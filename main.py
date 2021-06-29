@@ -1,6 +1,8 @@
 from dataclasses import dataclass, asdict
 from typing import List, Tuple
 import datetime
+import os
+import re
 
 import pandas as pd
 
@@ -23,6 +25,12 @@ from purchases import (
 )
 from sales import SalesLedger, NewSalesLedgerReceipt, SalesInvoiceLine, SalesInvoice
 from reporting import HTMLRawReportWriter
+
+
+@dataclass
+class EntityData:
+    name: str
+    cashbook: str
 
 
 class ExcelSourceDataLoader:
@@ -339,8 +347,8 @@ class InterLedgerJournalCreator:
         return journals
 
 
-def main():
-    data_loader = ExcelSourceDataLoader(filename="data/cashbook.xlsx", bank_sheet="bank", coa_sheet="coa",
+def entity_loop(filename: str, entity_name: str):
+    data_loader = ExcelSourceDataLoader(filename=filename, bank_sheet="bank", coa_sheet="coa",
                                         si_headers_sheet="sales_invoice_headers",
                                         si_lines_sheet="sales_invoice_lines",
                                         gl_jnl_headers_sheet="gl_journal_headers",
@@ -353,7 +361,7 @@ def main():
     general_ledger = GeneralLedgerTransactions()
     general = GeneralLedger(ledger=general_ledger, chart_of_accounts=InMemoryChartOfAccounts())
     inter_ledger_jnl_creator = InterLedgerJournalCreator()
-    report_writer = HTMLRawReportWriter(path="data/html")
+    report_writer = HTMLRawReportWriter(path="data/html", entity_name=entity_name)
 
     print("Bookkeeping Demo")
     print("Load source excel")
@@ -468,6 +476,25 @@ def main():
 
     # TODO validate num raw transactions vs num bank ledger transactions
 
+    return
+
+
+def get_entities_data(folder: str) -> List[EntityData]:
+    print("Identifying entity cashbooks")
+    entities = []
+    for cashbook in os.listdir(folder):
+        name = re.findall(r"cashbook_(.*).xlsx", cashbook)[0]
+        filename = os.path.join(folder, cashbook)
+        entity = EntityData(name=name, cashbook=filename)
+        entities.append(entity)
+    return entities
+
+
+def main():
+    entities_data = get_entities_data("data/cashbooks")
+    for entity in entities_data:
+        print(f"\nProcessing Entity: {entity.name}")
+        entity_loop(filename=entity.cashbook, entity_name=entity.name)
     return
 
 

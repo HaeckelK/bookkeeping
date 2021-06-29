@@ -247,8 +247,9 @@ class CSVRawReportWriter(RawReportWriter):
 
 
 class HTMLRawReportWriter(RawReportWriter):
-    def __init__(self, path: str) -> None:
-        self.path = path
+    def __init__(self, path: str, entity_name: str) -> None:
+        self.entity_name = entity_name
+        self.path = os.path.join(path, entity_name)
         self.ledgers_path = os.path.join(self.path, "ledger_transactions")
         self.nominals_path = os.path.join(self.path, "nominal_transactions")
 
@@ -329,7 +330,7 @@ class HTMLRawReportWriter(RawReportWriter):
                 if matches and "_NOMINAL" in line:
                     nominal = matches[0].replace("_NOMINAL", "")
                     new_line = line.replace(
-                        nominal + "_NOMINAL", f'<a href="/nominal_transactions/{nominal}.html">{nominal}</a>'
+                        nominal + "_NOMINAL", f'<a href="/{self.entity_name}/nominal_transactions/{nominal}.html">{nominal}</a>'
                     )
                     new_html.append(new_line)
                 else:
