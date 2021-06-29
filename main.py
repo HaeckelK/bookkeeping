@@ -267,7 +267,7 @@ class InterLedgerJournalCreator:
         gl_lines = [
             GLJournalLine(
                 nominal="purchase_ledger_control_account",
-                description="some auto generated description",
+                description="PL dispersal to GL",
                 amount=-total,
                 transaction_date=transaction_date,
             )
@@ -294,7 +294,7 @@ class InterLedgerJournalCreator:
         gl_lines = [
             GLJournalLine(
                 nominal="sales_ledger_control_account",
-                description="some auto generated description",
+                description="SL dispersal to GL",
                 amount=-total,
                 transaction_date=transaction_date,
             )
@@ -315,7 +315,10 @@ class InterLedgerJournalCreator:
 
     def create_bank_to_gl_journals(self, transactions: BankTransaction) -> List[GLJournal]:
         df = pd.DataFrame([asdict(x) for x in transactions])
+        dates_df = df[["bank_code", "matched_type", "date"]].copy().groupby(["bank_code", "matched_type"]).max().reset_index()
         df = df[["bank_code", "matched_type", "amount"]].groupby(["bank_code", "matched_type"]).sum().reset_index()
+
+        df = pd.merge(df, dates_df, how="left", on=["bank_code", "matched_type"]).reset_index()
 
         lookup = {
             "creditor": "purchase_ledger_control_account",
@@ -327,19 +330,21 @@ class InterLedgerJournalCreator:
             bank_code = line["bank_code"]
             amount = -line["amount"]
             gl_account = lookup[line["matched_type"]]
+            transcation_date = line["date"]
+            description = f"{bank_code} to {gl_account}"
 
             gl_lines = [
                 GLJournalLine(
                     nominal=bank_code,
-                    description="some auto generated description",
+                    description=description,
                     amount=amount,
-                    transaction_date=datetime.datetime.now(),
+                    transaction_date=transcation_date,
                 ),
                 GLJournalLine(
                     nominal=gl_account,
-                    description="some auto generated description",
+                    description=description,
                     amount=-amount,
-                    transaction_date=datetime.datetime.now(),
+                    transaction_date=transcation_date,
                 ),
             ]
             journal = GLJournal(jnl_type="bank", lines=gl_lines)
