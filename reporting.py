@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass
 import os
 import re
-from typing import List, Text
+from typing import List
 
 import pandas as pd
 
@@ -81,8 +81,9 @@ class ReportWriter(ABC):
         self.reset_buffer()
 
         if isinstance(page.parent_link, NullTextLink) is False:
-            self.buffer_add_parent_link(TextLink(page.parent_link.display,
-                                                 self.get_link_to_page(page.parent_link.link_page_id)))
+            self.buffer_add_parent_link(
+                TextLink(page.parent_link.display, self.get_link_to_page(page.parent_link.link_page_id))
+            )
 
         self.buffer_add_title(page.title)
 
@@ -206,7 +207,7 @@ class HTMLReportWriter(ReportWriter):
             for link in self.buffer["child_links"]:
                 child_links += "\n<li>"
                 # TODO .html should not already be coming through here?
-                child_links += f'<a href="{self.get_link_to_page(link.link_page_id).replace(".html.html", ".html")}">{link.display}</a>'
+                child_links += f'<a href="{self.get_link_to_page(link.link_page_id).replace(".html.html", ".html")}">{link.display}</a>'  # noqa: E501
                 child_links += "</li>"
             child_links += "\n</ul>"
         else:
@@ -216,7 +217,6 @@ class HTMLReportWriter(ReportWriter):
         with open(filename, "w") as f:
             f.write(html)
         return
-
 
 
 # TODO write methods for all ledgers
@@ -302,9 +302,15 @@ class HTMLRawReportWriter(RawReportWriter):
         )
 
         balances_period = df[["nominal", "period", "amount"]].groupby(["nominal", "period"]).sum()
-        balances_period = balances_period.reset_index().pivot(index="nominal", columns='period', values='amount').reset_index()
-        balances_period = balances_period.join(coa_df[["statement", "heading", "nominal"]].set_index("nominal"), on="nominal")
-        cols = ["statement", "heading", "nominal"] + [col for col in balances_period if col not in ["statement", "heading", "nominal"]]
+        balances_period = (
+            balances_period.reset_index().pivot(index="nominal", columns="period", values="amount").reset_index()
+        )
+        balances_period = balances_period.join(
+            coa_df[["statement", "heading", "nominal"]].set_index("nominal"), on="nominal"
+        )
+        cols = ["statement", "heading", "nominal"] + [
+            col for col in balances_period if col not in ["statement", "heading", "nominal"]
+        ]
         balances_period = balances_period.reset_index()[cols]
         balances_period = balances_period.fillna(0)
         balances_period["nominal"] = balances_period["nominal"] + "_NOMINAL"
@@ -330,7 +336,8 @@ class HTMLRawReportWriter(RawReportWriter):
                 if matches and "_NOMINAL" in line:
                     nominal = matches[0].replace("_NOMINAL", "")
                     new_line = line.replace(
-                        nominal + "_NOMINAL", f'<a href="/{self.entity_name}/nominal_transactions/{nominal}.html">{nominal}</a>'
+                        nominal + "_NOMINAL",
+                        f'<a href="/{self.entity_name}/nominal_transactions/{nominal}.html">{nominal}</a>',
                     )
                     new_html.append(new_line)
                 else:

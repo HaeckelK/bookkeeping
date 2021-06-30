@@ -101,7 +101,7 @@ class SalesLedger(PandasLedger):
             df["settled"] = False
             # TODO how to supply with no raw_id
             df["raw_id"] = -1
-            df["date"] = df["date"].apply(lambda x: pd.to_datetime(x, format='%d/%m/%Y'))
+            df["date"] = df["date"].apply(lambda x: pd.to_datetime(x, format="%d/%m/%Y"))
             transaction_ids.extend(self.append(df))
         return transaction_ids
 

@@ -110,7 +110,7 @@ class PurchaseLedger(PandasLedger):
         df = self.df
         df.loc[(df["transaction_id"].isin(transaction_ids)), "settled"] = True
         return
-    
+
     def mark_extracted_to_gl(self, transaction_ids: List[int]) -> None:
         df = self.df
         # TODO should be a reference back to the gl journal number rather than boolean
@@ -132,8 +132,11 @@ class PurchaseLedger(PandasLedger):
                 creditor=credtior,
                 lines=[
                     PurchaseInvoiceLine(
-                        nominal=nominal, description=description, amount=amount, transaction_date=transaction_date,
-                        transaction_id=invoice["transaction_id"]
+                        nominal=nominal,
+                        description=description,
+                        amount=amount,
+                        transaction_date=transaction_date,
+                        transaction_id=invoice["transaction_id"],
                     )
                 ],
             )
