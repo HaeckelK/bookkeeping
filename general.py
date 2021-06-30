@@ -8,6 +8,10 @@ from ledger import PandasLedger
 from utils import convert_date_string_to_period
 
 
+class JournalBalanceError(Exception):
+    pass
+
+
 @dataclass
 class GLJournalLine:
     nominal: str
@@ -61,6 +65,9 @@ class GeneralLedgerTransactions(PandasLedger):
         return next_id
 
     def add_journal(self, journal: GLJournal) -> List[int]:
+        if journal.total != 0:
+            print(journal)
+            raise JournalBalanceError(f"Journal does not balance: {journal.total}")
         df = pd.DataFrame([asdict(x) for x in journal.lines])
         df["jnl_type"] = journal.jnl_type
         df["jnl_id"] = self.get_next_journal_id()
