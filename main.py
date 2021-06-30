@@ -1,12 +1,10 @@
 from dataclasses import dataclass, asdict
 from typing import List, Tuple
-import datetime
 import os
 import re
 
 import pandas as pd
 
-from ledger import PandasLedger
 from general import (
     GLJournal,
     GLJournalLine,
@@ -35,8 +33,16 @@ class EntityData:
 
 
 class ExcelSourceDataLoader:
-    def __init__(self, filename: str, bank_sheet: str, coa_sheet: str, si_headers_sheet: str, si_lines_sheet: str,
-                 gl_jnl_headers_sheet: str, gl_jnl_lines_sheet: str) -> None:
+    def __init__(
+        self,
+        filename: str,
+        bank_sheet: str,
+        coa_sheet: str,
+        si_headers_sheet: str,
+        si_lines_sheet: str,
+        gl_jnl_headers_sheet: str,
+        gl_jnl_lines_sheet: str,
+    ) -> None:
         self.filename = filename
         self.bank_sheet = bank_sheet
         self.coa_sheet = coa_sheet
@@ -117,8 +123,9 @@ class ExcelSourceDataLoader:
 
 
 class SourceDataParser:
-    def register_source_data(self, bank, coa, sales_invoice_headers, sales_invoice_lines,
-                             gl_journal_headers, gl_journal_lines) -> None:
+    def register_source_data(
+        self, bank, coa, sales_invoice_headers, sales_invoice_lines, gl_journal_headers, gl_journal_lines
+    ) -> None:
         self.bank = bank
         self.coa = coa
         self.sales_invoice_headers = sales_invoice_headers
@@ -227,10 +234,11 @@ class SourceDataParser:
             raw_lines = [x for x in all_lines if x["header_id"] == header["id"]]
             lines = []
             for raw_line in raw_lines:
-                lines.append(SalesInvoiceLine(raw_line["nominal"],
-                                             raw_line["description"],
-                                             raw_line["amount"],
-                                             raw_line["transaction_date"]))
+                lines.append(
+                    SalesInvoiceLine(
+                        raw_line["nominal"], raw_line["description"], raw_line["amount"], raw_line["transaction_date"]
+                    )
+                )
             invoice = SalesInvoice(header["debtor"], lines=lines)
             invoices.append(invoice)
         return invoices
@@ -245,10 +253,11 @@ class SourceDataParser:
             raw_lines = [x for x in all_lines if x["header_id"] == header["id"]]
             lines = []
             for raw_line in raw_lines:
-                lines.append(GLJournalLine(raw_line["nominal"],
-                                           raw_line["description"],
-                                           raw_line["amount"],
-                                           raw_line["transaction_date"]))
+                lines.append(
+                    GLJournalLine(
+                        raw_line["nominal"], raw_line["description"], raw_line["amount"], raw_line["transaction_date"]
+                    )
+                )
             invoice = GLJournal(header["jnl_type"], lines=lines)
             invoices.append(invoice)
         return invoices
@@ -321,7 +330,9 @@ class InterLedgerJournalCreator:
 
     def create_bank_to_gl_journals(self, transactions: BankTransaction) -> List[GLJournal]:
         df = pd.DataFrame([asdict(x) for x in transactions])
-        dates_df = df[["bank_code", "matched_type", "date"]].copy().groupby(["bank_code", "matched_type"]).max().reset_index()
+        dates_df = (
+            df[["bank_code", "matched_type", "date"]].copy().groupby(["bank_code", "matched_type"]).max().reset_index()
+        )
         df = df[["bank_code", "matched_type", "amount"]].groupby(["bank_code", "matched_type"]).sum().reset_index()
 
         df = pd.merge(df, dates_df, how="left", on=["bank_code", "matched_type"]).reset_index()
@@ -365,11 +376,15 @@ def filter_by_period(df: pd.DataFrame, period: int) -> pd.DataFrame:
 
 
 def entity_loop(filename: str, entity_name: str):
-    data_loader = ExcelSourceDataLoader(filename=filename, bank_sheet="bank", coa_sheet="coa",
-                                        si_headers_sheet="sales_invoice_headers",
-                                        si_lines_sheet="sales_invoice_lines",
-                                        gl_jnl_headers_sheet="gl_journal_headers",
-                                        gl_jnl_lines_sheet="gl_journal_lines")
+    data_loader = ExcelSourceDataLoader(
+        filename=filename,
+        bank_sheet="bank",
+        coa_sheet="coa",
+        si_headers_sheet="sales_invoice_headers",
+        si_lines_sheet="sales_invoice_lines",
+        gl_jnl_headers_sheet="gl_journal_headers",
+        gl_jnl_lines_sheet="gl_journal_lines",
+    )
     parser = SourceDataParser()
     bank_ledger = InMemoryBankLedgerTransactions()
     bank = BankLedger(ledger=bank_ledger)
@@ -392,12 +407,14 @@ def entity_loop(filename: str, entity_name: str):
         period_gl_journal_headers = filter_by_period(data_loader.gl_journal_headers, period)
         period_gl_journal_lines = filter_by_period(data_loader.gl_journal_lines, period)
 
-
-        parser.register_source_data(bank=period_bank, coa=data_loader.coa,
-                                    sales_invoice_headers=period_sales_invoice_headers,
-                                    sales_invoice_lines=period_sales_invoice_lines,
-                                    gl_journal_headers=period_gl_journal_headers,
-                                    gl_journal_lines=period_gl_journal_lines)
+        parser.register_source_data(
+            bank=period_bank,
+            coa=data_loader.coa,
+            sales_invoice_headers=period_sales_invoice_headers,
+            sales_invoice_lines=period_sales_invoice_lines,
+            gl_journal_headers=period_gl_journal_headers,
+            gl_journal_lines=period_gl_journal_lines,
+        )
 
         # Setup financials config
         nominals = parser.chart_of_accounts_config
