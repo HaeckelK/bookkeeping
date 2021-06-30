@@ -384,7 +384,7 @@ def entity_loop(filename: str, entity_name: str):
     print("Load source excel")
     data_loader.load()
 
-    for period in range(1, 6):
+    for period in range(1, 13):
         print(f"\nCurrent Period: {period}")
         period_bank = filter_by_period(data_loader.bank, period)
         period_sales_invoice_headers = filter_by_period(data_loader.sales_invoice_headers, period)
