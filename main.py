@@ -25,6 +25,7 @@ from purchases import (
 )
 from sales import SalesLedger, NewSalesLedgerReceipt, SalesInvoiceLine, SalesInvoice
 from reporting import HTMLRawReportWriter
+from utils import convert_date_string_to_period
 
 
 @dataclass
@@ -70,6 +71,7 @@ class ExcelSourceDataLoader:
     def load_bank(self):
         # TODO set all column names to lower
         df = pd.read_excel(self.filename, sheet_name=self.bank_sheet, index_col=None)
+        df["period"] = df["date"].apply(convert_date_string_to_period)
         df["amount"] = df["amount"] * 100
         df = df.astype({"amount": "int32"})
         df.insert(0, "raw_id", range(0, 0 + len(df)))

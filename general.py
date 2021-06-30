@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 import pandas as pd
 
 from ledger import PandasLedger
+from utils import convert_date_string_to_period
 
 
 @dataclass
@@ -79,15 +80,6 @@ class GeneralLedgerTransactions(PandasLedger):
     def balances(self) -> Dict[str, int]:
         data = self.df[["nominal", "amount"]].groupby(["nominal"]).sum().to_dict()["amount"]
         return data
-
-
-def convert_date_string_to_period(timestamp) -> int:
-    try:
-        month = int(timestamp.month)
-    except AttributeError:
-        return -1
-    else:
-        return month
 
 
 @dataclass
