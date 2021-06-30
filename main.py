@@ -25,6 +25,7 @@ from purchases import (
 )
 from sales import SalesLedger, NewSalesLedgerReceipt, SalesInvoiceLine, SalesInvoice
 from reporting import HTMLRawReportWriter
+from utils import convert_date_string_to_period
 
 
 @dataclass
@@ -70,6 +71,7 @@ class ExcelSourceDataLoader:
     def load_bank(self):
         # TODO set all column names to lower
         df = pd.read_excel(self.filename, sheet_name=self.bank_sheet, index_col=None)
+        df["period"] = df["date"].apply(convert_date_string_to_period)
         df["amount"] = df["amount"] * 100
         df = df.astype({"amount": "int32"})
         df.insert(0, "raw_id", range(0, 0 + len(df)))
@@ -85,11 +87,13 @@ class ExcelSourceDataLoader:
 
     def load_sales_invoice_headers(self):
         df = pd.read_excel(self.filename, sheet_name=self.si_headers_sheet, index_col=None)
+        df["period"] = df["date"].apply(convert_date_string_to_period)
         self.sales_invoice_headers = df
         return
 
     def load_sales_invoice_lines(self):
         df = pd.read_excel(self.filename, sheet_name=self.si_lines_sheet, index_col=None)
+        df["period"] = df["transaction_date"].apply(convert_date_string_to_period)
         df["amount"] = df["amount"] * 100
         df = df.astype({"amount": "int32"})
         df.insert(0, "line_id", range(0, 0 + len(df)))
@@ -98,11 +102,13 @@ class ExcelSourceDataLoader:
 
     def load_gl_journal_headers(self):
         df = pd.read_excel(self.filename, sheet_name=self.gl_jnl_headers_sheet, index_col=None)
+        df["period"] = df["date"].apply(convert_date_string_to_period)
         self.gl_journal_headers = df
         return
 
     def load_gl_journal_lines(self):
         df = pd.read_excel(self.filename, sheet_name=self.gl_jnl_lines_sheet, index_col=None)
+        df["period"] = df["transaction_date"].apply(convert_date_string_to_period)
         df["amount"] = df["amount"] * 100
         df = df.astype({"amount": "int32"})
         df.insert(0, "line_id", range(0, 0 + len(df)))
