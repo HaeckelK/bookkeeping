@@ -468,6 +468,8 @@ def entity_loop(filename: str, entity_name: str):
                 print("....General ledger ids:", ids)
                 print("..marking extracted in Purchase Ledger", ids)
                 # sales_ledger.mark_extracted_to_gl(ids)
+                # Hack - needs to only mark items that were just posted
+                sales_ledger.mark_all_posted()
 
         print("\nDispersing Bank Ledger to General Ledger")
         # TODO maybe this should only be bank to PL and SL + direct to GL, then from PL and SL to GL
@@ -476,8 +478,8 @@ def entity_loop(filename: str, entity_name: str):
             journals = inter_ledger_jnl_creator.create_bank_to_gl_journals(bank_transactions)
             for journal in journals:
                 general.ledger.add_journal(journal)
+                # Hack - needs to only mark items that were just posted
                 bank.ledger.mark_all_posted()
-                # TODO update bank_ledger that these have been added to gl
 
         print("\nPosting GL Journals")
         for journal in gl_journals:

@@ -130,3 +130,8 @@ class SalesLedger(PandasLedger):
     @property
     def balance(self) -> int:
         return self.df["amount"].sum()
+
+    # Temporary fix
+    def mark_all_posted(self) -> None:
+        self.df["gl_jnl"] = True
+        return
