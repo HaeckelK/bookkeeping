@@ -377,11 +377,20 @@ def entity_loop(filename: str, entity_name: str):
     print("Bookkeeping Demo")
     print("Load source excel")
     data_loader.load()
-    parser.register_source_data(bank=data_loader.bank, coa=data_loader.coa,
-                                sales_invoice_headers=data_loader.sales_invoice_headers,
-                                sales_invoice_lines=data_loader.sales_invoice_lines,
-                                gl_journal_headers=data_loader.gl_journal_headers,
-                                gl_journal_lines=data_loader.gl_journal_lines)
+
+
+    period_bank = data_loader.bank
+    period_sales_invoice_headers = data_loader.sales_invoice_headers
+    period_sales_invoice_lines = data_loader.sales_invoice_lines
+    period_gl_journal_headers = data_loader.gl_journal_headers
+    period_gl_journal_lines = data_loader.gl_journal_lines
+
+
+    parser.register_source_data(bank=period_bank, coa=data_loader.coa,
+                                sales_invoice_headers=period_sales_invoice_headers,
+                                sales_invoice_lines=period_sales_invoice_lines,
+                                gl_journal_headers=period_gl_journal_headers,
+                                gl_journal_lines=period_gl_journal_lines)
 
     # Setup financials config
     nominals = parser.chart_of_accounts_config
