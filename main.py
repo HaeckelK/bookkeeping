@@ -403,6 +403,9 @@ def entity_loop(filename: str, entity_name: str):
         nominals = parser.chart_of_accounts_config
         print("\nAdding nominal accounts to COA")
         for nominal in nominals:
+            # TODO COA should have a method to check
+            if nominal.name in [x.name for x in general.chart_of_accounts.nominals]:
+                continue
             print(f"..{nominal.name}")
             general.chart_of_accounts.add_nominal(nominal)
 

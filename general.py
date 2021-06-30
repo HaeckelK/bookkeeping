@@ -102,6 +102,7 @@ class Nominal:
     bank_account: bool
 
 
+# TODO don't allow same nominal to be added more than once
 class ChartOfAccounts(ABC):
     @abstractmethod
     def add_nominal(self, nominal: NewNominal) -> None:
