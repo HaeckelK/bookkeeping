@@ -476,6 +476,7 @@ def entity_loop(filename: str, entity_name: str):
             journals = inter_ledger_jnl_creator.create_bank_to_gl_journals(bank_transactions)
             for journal in journals:
                 general.ledger.add_journal(journal)
+                bank.ledger.mark_all_posted()
                 # TODO update bank_ledger that these have been added to gl
 
         print("\nPosting GL Journals")

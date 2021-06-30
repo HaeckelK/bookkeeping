@@ -79,3 +79,8 @@ class InMemoryBankLedgerTransactions(BankLedgerTransactions, PandasLedger):
     def get_unposted_transactions(self) -> List[BankTransaction]:
         df = self.df[self.df["gl_jnl"] == False]
         return [BankTransaction(**x) for x in df.to_dict("records")]
+
+    # Temporary fix
+    def mark_all_posted(self) -> None:
+        self.df["gl_jnl"] = True
+        return
