@@ -358,6 +358,12 @@ class InterLedgerJournalCreator:
         return journals
 
 
+def filter_by_period(df: pd.DataFrame, period: int) -> pd.DataFrame:
+    data = df.copy()
+    data = data.loc[(df["period"] == period)]
+    return data
+
+
 def entity_loop(filename: str, entity_name: str):
     data_loader = ExcelSourceDataLoader(filename=filename, bank_sheet="bank", coa_sheet="coa",
                                         si_headers_sheet="sales_invoice_headers",
@@ -377,83 +383,132 @@ def entity_loop(filename: str, entity_name: str):
     print("Bookkeeping Demo")
     print("Load source excel")
     data_loader.load()
-    parser.register_source_data(bank=data_loader.bank, coa=data_loader.coa,
-                                sales_invoice_headers=data_loader.sales_invoice_headers,
-                                sales_invoice_lines=data_loader.sales_invoice_lines,
-                                gl_journal_headers=data_loader.gl_journal_headers,
-                                gl_journal_lines=data_loader.gl_journal_lines)
 
-    # Setup financials config
-    nominals = parser.chart_of_accounts_config
-    print("\nAdding nominal accounts to COA")
-    for nominal in nominals:
-        print(f"..{nominal.name}")
-        general.chart_of_accounts.add_nominal(nominal)
+    for period in range(1, 6):
+        print(f"\nCurrent Period: {period}")
+        period_bank = filter_by_period(data_loader.bank, period)
+        period_sales_invoice_headers = filter_by_period(data_loader.sales_invoice_headers, period)
+        period_sales_invoice_lines = filter_by_period(data_loader.sales_invoice_lines, period)
+        period_gl_journal_headers = filter_by_period(data_loader.gl_journal_headers, period)
+        period_gl_journal_lines = filter_by_period(data_loader.gl_journal_lines, period)
 
-    bank_transactions = parser.get_bank_transactions()
-    gl_journals = parser.gl_journals
-    settled_sales_invoices = parser.get_settled_sales_invoices()
-    sales_invoices = parser.sales_invoices
-    unmatched_payments = parser.get_unmatched_payments()
-    unmatched_receipts = parser.get_unmatched_receipts()
 
-    bank.ledger.add_transactions(bank_transactions)
+        parser.register_source_data(bank=period_bank, coa=data_loader.coa,
+                                    sales_invoice_headers=period_sales_invoice_headers,
+                                    sales_invoice_lines=period_sales_invoice_lines,
+                                    gl_journal_headers=period_gl_journal_headers,
+                                    gl_journal_lines=period_gl_journal_lines)
 
-    # Settled Purchase Ledger Invoices
-    print("\nAdding settled invoices to Purchase Ledger")
-    settled_pl_invoices = parser.get_settled_purchase_invoices()
-    for invoice, payment in settled_pl_invoices:
-        # Assuming invoice is one line, payment is one line
-        print("..Adding invoices")
-        invoice_trans_ids = purchase_ledger.add_invoices([invoice])
-        print("....invoice_trans_ids", invoice_trans_ids)
-        print("..Adding corresponding payments")
-        payment_trans_ids = purchase_ledger.add_payments([payment])
-        print("....payment_trans_ids", payment_trans_ids)
-        allocation_ids = invoice_trans_ids + payment_trans_ids
-        print("..Allocating transactions", allocation_ids)
-        purchase_ledger.allocate_transactions(allocation_ids)
+        # Setup financials config
+        nominals = parser.chart_of_accounts_config
+        print("\nAdding nominal accounts to COA")
+        for nominal in nominals:
+            # TODO COA should have a method to check
+            if nominal.name in [x.name for x in general.chart_of_accounts.nominals]:
+                continue
+            print(f"..{nominal.name}")
+            general.chart_of_accounts.add_nominal(nominal)
 
-    print("\nAdding unmatched payments to Purchase Ledger")
-    ids = purchase_ledger.add_payments(unmatched_payments)
-    print("..Purchase ledger ids:", ids)
+        bank_transactions = parser.get_bank_transactions()
+        gl_journals = parser.gl_journals
+        settled_sales_invoices = parser.get_settled_sales_invoices()
+        sales_invoices = parser.sales_invoices
+        unmatched_payments = parser.get_unmatched_payments()
+        unmatched_receipts = parser.get_unmatched_receipts()
 
-    sales_ledger.add_settled_transcations(settled_sales_invoices)
-    sales_ledger.add_receipts(unmatched_receipts)
-    print("Adding Sales Ledger Invoices")
-    sales_ledger.add_invoices(sales_invoices)
+        if bank_transactions:
+            bank.ledger.add_transactions(bank_transactions)
 
-    print("\nDispersing Purchase Ledger invoice to General Ledger")
-    # TODO this needs to return List[Tuple[journals, purchase invoice ID]]
-    # Hmm bigger issue here is that there is no link from Purchase Invoice to PL transaction id.
-    journals = inter_ledger_jnl_creator.create_pl_to_gl_journals(purchase_ledger.get_unposted_invoices())
-    for journal, transaction_ids in journals:
-        print(f"..{journal.jnl_type}: {journal.total}")
-        ids = general.ledger.add_journal(journal)
-        print("....General ledger ids:", ids)
-        print("..marking extracted in Purchase Ledger", transaction_ids)
-        purchase_ledger.mark_extracted_to_gl(transaction_ids)
+        # Settled Purchase Ledger Invoices
+        print("\nAdding settled invoices to Purchase Ledger")
+        settled_pl_invoices = parser.get_settled_purchase_invoices()
+        for invoice, payment in settled_pl_invoices:
+            # Assuming invoice is one line, payment is one line
+            print("..Adding invoices")
+            invoice_trans_ids = purchase_ledger.add_invoices([invoice])
+            print("....invoice_trans_ids", invoice_trans_ids)
+            print("..Adding corresponding payments")
+            payment_trans_ids = purchase_ledger.add_payments([payment])
+            print("....payment_trans_ids", payment_trans_ids)
+            allocation_ids = invoice_trans_ids + payment_trans_ids
+            print("..Allocating transactions", allocation_ids)
+            purchase_ledger.allocate_transactions(allocation_ids)
 
-    print("\nDispersing Sales Ledger invoice to General Ledger")
-    journals = inter_ledger_jnl_creator.create_sl_to_gl_journals(sales_ledger.get_unposted_invoices())
-    for journal in journals:
-        print(f"..{journal.jnl_type}: {journal.total}")
-        ids = general.ledger.add_journal(journal)
-        print("....General ledger ids:", ids)
-        print("..marking extracted in Purchase Ledger", ids)
-        # sales_ledger.mark_extracted_to_gl(ids)
+        print("\nAdding unmatched payments to Purchase Ledger")
+        if unmatched_payments:
+            ids = purchase_ledger.add_payments(unmatched_payments)
+            print("..Purchase ledger ids:", ids)
 
-    print("\nDispersing Bank Ledger to General Ledger")
-    # TODO maybe this should only be bank to PL and SL + direct to GL, then from PL and SL to GL
-    journals = inter_ledger_jnl_creator.create_bank_to_gl_journals(bank.ledger.list_transactions())
-    for journal in journals:
-        general.ledger.add_journal(journal)
-        # TODO update bank_ledger that these have been added to gl
+        sales_ledger.add_settled_transcations(settled_sales_invoices)
+        if unmatched_receipts:
+            sales_ledger.add_receipts(unmatched_receipts)
+        print("Adding Sales Ledger Invoices")
+        sales_ledger.add_invoices(sales_invoices)
 
-    print("\nPosting GL Journals")
-    for journal in gl_journals:
-        general.ledger.add_journal(journal)
+        print("\nDispersing Purchase Ledger invoice to General Ledger")
+        # TODO this needs to return List[Tuple[journals, purchase invoice ID]]
+        # Hmm bigger issue here is that there is no link from Purchase Invoice to PL transaction id.
+        pl_unposted_invoices = purchase_ledger.get_unposted_invoices()
+        if pl_unposted_invoices:
+            journals = inter_ledger_jnl_creator.create_pl_to_gl_journals(pl_unposted_invoices)
+            for journal, transaction_ids in journals:
+                print(f"..{journal.jnl_type}: {journal.total}")
+                ids = general.ledger.add_journal(journal)
+                print("....General ledger ids:", ids)
+                print("..marking extracted in Purchase Ledger", transaction_ids)
+                purchase_ledger.mark_extracted_to_gl(transaction_ids)
 
+        print("\nDispersing Sales Ledger invoice to General Ledger")
+        pl_unposted_invoices = sales_ledger.get_unposted_invoices()
+        if pl_unposted_invoices:
+            journals = inter_ledger_jnl_creator.create_sl_to_gl_journals(pl_unposted_invoices)
+            for journal in journals:
+                print(f"..{journal.jnl_type}: {journal.total}")
+                ids = general.ledger.add_journal(journal)
+                print("....General ledger ids:", ids)
+                print("..marking extracted in Purchase Ledger", ids)
+                # sales_ledger.mark_extracted_to_gl(ids)
+
+        print("\nDispersing Bank Ledger to General Ledger")
+        # TODO maybe this should only be bank to PL and SL + direct to GL, then from PL and SL to GL
+        bank_transactions = bank.ledger.list_transactions()
+        if bank_transactions:
+            journals = inter_ledger_jnl_creator.create_bank_to_gl_journals(bank_transactions)
+            for journal in journals:
+                general.ledger.add_journal(journal)
+                # TODO update bank_ledger that these have been added to gl
+
+        print("\nPosting GL Journals")
+        for journal in gl_journals:
+            general.ledger.add_journal(journal)
+
+        # Validation
+        print("Running validation checks")
+        print("General Ledger sums to 0. Value:", general.ledger.balance, general.ledger.balance == 0)
+        assert general.ledger.balance == 0
+        # TODO each bank account sums to account on GL
+
+        print("\n")
+        print("Purchase Ledger Control Account agrees to Purchase Ledger")
+        try:
+            plca_value = general.ledger.balances["purchase_ledger_control_account"]
+        except KeyError:
+            plca_value = 0
+        print("PLCA value:", plca_value)
+        purchase_ledger_balance = purchase_ledger.balance
+        print("Purchase Ledger value:", purchase_ledger_balance)
+        assert plca_value == purchase_ledger_balance
+        print("\n")
+        try:
+            slca_value = general.ledger.balances["sales_ledger_control_account"]
+        except KeyError:
+            slca_value = 0
+        print("SLCA value:", slca_value)
+        sales_ledger_balance = sales_ledger.balance
+        print("Sales Ledger value:", sales_ledger_balance)
+        assert slca_value == sales_ledger_balance
+
+        # TODO validate num raw transactions vs num bank ledger transactions
     # Reporting
     print("\nPublishing Report")
     print("..Bank Ledger")
@@ -464,29 +519,6 @@ def entity_loop(filename: str, entity_name: str):
     report_writer.write_purchase_ledger(purchase_ledger)
     print("..Sales Ledger")
     report_writer.write_sales_ledger(sales_ledger)
-
-    # Validation
-    print("Running validation checks")
-    print("General Ledger sums to 0. Value:", general.ledger.balance, general.ledger.balance == 0)
-    assert general.ledger.balance == 0
-    # TODO each bank account sums to account on GL
-
-    print("\n")
-    print("Purchase Ledger Control Account agrees to Purchase Ledger")
-    plca_value = general.ledger.balances["purchase_ledger_control_account"]
-    print("PLCA value:", plca_value)
-    purchase_ledger_balance = purchase_ledger.balance
-    print("Purchase Ledger value:", purchase_ledger_balance)
-    assert plca_value == purchase_ledger_balance
-    print("\n")
-    slca_value = general.ledger.balances["sales_ledger_control_account"]
-    print("SLCA value:", slca_value)
-    sales_ledger_balance = sales_ledger.balance
-    print("Sales Ledger value:", sales_ledger_balance)
-    assert slca_value == sales_ledger_balance
-
-    # TODO validate num raw transactions vs num bank ledger transactions
-
     return
 
 
