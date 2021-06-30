@@ -471,11 +471,12 @@ def entity_loop(filename: str, entity_name: str):
 
         print("\nDispersing Bank Ledger to General Ledger")
         # TODO maybe this should only be bank to PL and SL + direct to GL, then from PL and SL to GL
-        bank_transactions = bank.ledger.list_transactions()
+        bank_transactions = bank.ledger.get_unposted_transactions()
         if bank_transactions:
             journals = inter_ledger_jnl_creator.create_bank_to_gl_journals(bank_transactions)
             for journal in journals:
                 general.ledger.add_journal(journal)
+                bank.ledger.mark_all_posted()
                 # TODO update bank_ledger that these have been added to gl
 
         print("\nPosting GL Journals")

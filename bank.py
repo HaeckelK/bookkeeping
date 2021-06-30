@@ -36,6 +36,10 @@ class BankLedgerTransactions(Ledger):
     def list_transactions(self) -> List[BankTransaction]:
         """"""
 
+    @abstractmethod
+    def get_unposted_transactions(self) -> List[BankTransaction]:
+        """"""
+
 
 class BankLedger:
     def __init__(self, ledger: BankLedgerTransactions):
@@ -71,3 +75,12 @@ class InMemoryBankLedgerTransactions(BankLedgerTransactions, PandasLedger):
 
     def list_transactions(self) -> List[BankTransaction]:
         return [BankTransaction(**x) for x in self.df.to_dict("records")]
+
+    def get_unposted_transactions(self) -> List[BankTransaction]:
+        df = self.df[self.df["gl_jnl"] == False]
+        return [BankTransaction(**x) for x in df.to_dict("records")]
+
+    # Temporary fix
+    def mark_all_posted(self) -> None:
+        self.df["gl_jnl"] = True
+        return
