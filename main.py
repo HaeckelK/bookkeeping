@@ -384,7 +384,7 @@ def entity_loop(filename: str, entity_name: str):
     print("Load source excel")
     data_loader.load()
 
-    for period in range(1, 13):
+    for period in range(1, 6):
         print(f"\nCurrent Period: {period}")
         period_bank = filter_by_period(data_loader.bank, period)
         period_sales_invoice_headers = filter_by_period(data_loader.sales_invoice_headers, period)
@@ -482,6 +482,33 @@ def entity_loop(filename: str, entity_name: str):
         for journal in gl_journals:
             general.ledger.add_journal(journal)
 
+        # Validation
+        print("Running validation checks")
+        print("General Ledger sums to 0. Value:", general.ledger.balance, general.ledger.balance == 0)
+        assert general.ledger.balance == 0
+        # TODO each bank account sums to account on GL
+
+        print("\n")
+        print("Purchase Ledger Control Account agrees to Purchase Ledger")
+        try:
+            plca_value = general.ledger.balances["purchase_ledger_control_account"]
+        except KeyError:
+            plca_value = 0
+        print("PLCA value:", plca_value)
+        purchase_ledger_balance = purchase_ledger.balance
+        print("Purchase Ledger value:", purchase_ledger_balance)
+        assert plca_value == purchase_ledger_balance
+        print("\n")
+        try:
+            slca_value = general.ledger.balances["sales_ledger_control_account"]
+        except KeyError:
+            slca_value = 0
+        print("SLCA value:", slca_value)
+        sales_ledger_balance = sales_ledger.balance
+        print("Sales Ledger value:", sales_ledger_balance)
+        assert slca_value == sales_ledger_balance
+
+        # TODO validate num raw transactions vs num bank ledger transactions
     # Reporting
     print("\nPublishing Report")
     print("..Bank Ledger")
@@ -492,34 +519,6 @@ def entity_loop(filename: str, entity_name: str):
     report_writer.write_purchase_ledger(purchase_ledger)
     print("..Sales Ledger")
     report_writer.write_sales_ledger(sales_ledger)
-
-    # Validation
-    print("Running validation checks")
-    print("General Ledger sums to 0. Value:", general.ledger.balance, general.ledger.balance == 0)
-    assert general.ledger.balance == 0
-    # TODO each bank account sums to account on GL
-
-    print("\n")
-    print("Purchase Ledger Control Account agrees to Purchase Ledger")
-    try:
-        plca_value = general.ledger.balances["purchase_ledger_control_account"]
-    except KeyError:
-        plca_value = 0
-    print("PLCA value:", plca_value)
-    purchase_ledger_balance = purchase_ledger.balance
-    print("Purchase Ledger value:", purchase_ledger_balance)
-    assert plca_value == purchase_ledger_balance
-    print("\n")
-    try:
-        slca_value = general.ledger.balances["sales_ledger_control_account"]
-    except KeyError:
-        slca_value = 0
-    print("SLCA value:", slca_value)
-    sales_ledger_balance = sales_ledger.balance
-    print("Sales Ledger value:", sales_ledger_balance)
-    assert slca_value == sales_ledger_balance
-
-    # TODO validate num raw transactions vs num bank ledger transactions
     return
 
 
