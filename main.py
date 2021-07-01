@@ -546,6 +546,9 @@ def get_entities_data(folder: str) -> List[EntityData]:
     print("Identifying entity cashbooks")
     entities = []
     for cashbook in os.listdir(folder):
+        # Skip open temp files
+        if "~" in cashbook:
+            continue
         name = re.findall(r"cashbook_(.*).xlsx", cashbook)[0]
         filename = os.path.join(folder, cashbook)
         entity = EntityData(name=name, cashbook=filename)
