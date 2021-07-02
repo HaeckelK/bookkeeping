@@ -11,6 +11,8 @@ class NominalAccount(models.Model):
         max_length=2,
         choices=EXPECTED_SIGN_CHOICES
     )
+    is_control_account = models.BooleanField()
+    is_bank_account = models.BooleanField()
 
 
     def __str__(self) -> str:
