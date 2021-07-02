@@ -2,7 +2,16 @@ from django.db import models
 
 
 class NominalAccount(models.Model):
+    EXPECTED_SIGN_CHOICES = [
+        ('dr', 'debit'),
+        ('cr', 'credit'),
+    ]
     name = models.CharField(max_length=100)
+    expected_sign = models.CharField(
+        max_length=2,
+        choices=EXPECTED_SIGN_CHOICES
+    )
+
 
     def __str__(self) -> str:
         return self.name
