@@ -2,6 +2,7 @@ from dataclasses import dataclass, asdict
 from typing import List, Tuple
 import os
 import re
+import json
 
 import pandas as pd
 
@@ -539,6 +540,27 @@ def entity_loop(filename: str, entity_name: str):
     report_writer.write_purchase_ledger(purchase_ledger)
     print("..Sales Ledger")
     report_writer.write_sales_ledger(sales_ledger)
+
+    # Reporting again in standardised format
+    # TODO need something not Djano specific
+    print("\nPreparing Reporting Pack")
+    reporting_pack = []
+    print("..nominals")
+    for i, nominal in enumerate(general.chart_of_accounts.nominals):
+        store = {"model": "dashboards.nominalaccount",  # TODO coupling
+                 "pk": i + 1,
+                 "fields": {
+                    "name": nominal.name,
+                    "expected_sign": nominal.expected_sign,
+                    "is_control_account": nominal.control_account,
+                    "is_bank_account": nominal.bank_account}
+        }
+        reporting_pack.append(store)
+
+    print("Saving to file")
+    with open("data/reporting_pack.json", "w") as f:
+        f.write(json.dumps(reporting_pack))
+
     return
 
 
