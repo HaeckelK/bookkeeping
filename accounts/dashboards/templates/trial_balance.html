@@ -1,0 +1,31 @@
+<html>
+    <head>
+        <title>
+            Trial Balance
+        </title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    </head>
+    <body>
+        <div class="container">
+            <h1>Trial Balance: Period {{ period }}</h1>
+            <table class="table table-hover">
+                <tr>
+                    <th>Nominal</th>
+                    <th>Balance</th>
+                </tr>
+                {% for balance in balances %}
+                <tr>
+                    <td><a href="/nominals/{{ balance.nominal.name }}">{{ balance.nominal.name }}</a></td>
+                    <td><a href="/nominal_transactions/?nominals={{ balance.nominal.name }}&period_start={{period}}&period_end={{period}}">
+                    {% if cumulative is True %}
+                        {{ balance.amount_cumulative }}
+                    {% else %}
+                        {{ balance.amount }}
+                    {% endif %}
+                    </a></td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+    </body>
+</html>
