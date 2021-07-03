@@ -44,3 +44,13 @@ class PeriodBalance(models.Model):
     amount = models.IntegerField()
     amount_cumulative = models.IntegerField()
     count_transactions = models.IntegerField()
+
+
+class NominalTransactions(models.Model):
+    transaction_id = models.IntegerField(unique=True)
+    journal_id = models.IntegerField()
+    date_transaction = models.DateField()
+    period = models.IntegerField()
+    nominal = models.ForeignKey(NominalAccount, on_delete=models.CASCADE)
+    amount = models.IntegerField()
+    description = models.CharField(max_length=500)
