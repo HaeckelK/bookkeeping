@@ -46,7 +46,7 @@ class PeriodBalance(models.Model):
     count_transactions = models.IntegerField()
 
 
-class NominalTransactions(models.Model):
+class NominalTransaction(models.Model):
     transaction_id = models.IntegerField(unique=True)
     journal_id = models.IntegerField()
     date_transaction = models.DateField()
