@@ -546,6 +546,7 @@ def entity_loop(filename: str, entity_name: str):
     print("\nPreparing Reporting Pack")
     reporting_pack = []
     print("..nominals")
+    nominal_lookup = {}
     for i, nominal in enumerate(general.chart_of_accounts.nominals):
         store = {"model": "dashboards.nominalaccount",  # TODO coupling
                  "pk": i + 1,
@@ -555,7 +556,28 @@ def entity_loop(filename: str, entity_name: str):
                     "is_control_account": nominal.control_account,
                     "is_bank_account": nominal.bank_account}
         }
+        nominal_lookup[nominal.name] = i + 1
         reporting_pack.append(store)
+
+    print("..period balances")
+    # TODO needs pre processing for nominals that have empty period
+    # This is completely made up data
+    pk = 1
+    for nominal in general.chart_of_accounts.nominals:
+        for tmp_period in range(1, period + 1):
+            store = {"model": "dashboards.periodbalance",
+                     "pk": pk,
+                     "fields": {
+                        "nominal": nominal_lookup[nominal.name],
+                        "period": tmp_period,
+                        "amount": 999,
+                        "amount_cumulative": 123,
+                        "count_transactions": 0
+                        }
+                    }
+            reporting_pack.append(store)
+            pk += 1
+
 
     print("Saving to file")
     with open("data/reporting_pack.json", "w") as f:
