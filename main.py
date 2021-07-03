@@ -578,6 +578,21 @@ def entity_loop(filename: str, entity_name: str):
             reporting_pack.append(store)
             pk += 1
 
+    print("..nominal transactions")
+    for transaction in general.ledger.list_transactions():
+        store = {"model": "dashboards.nominaltransaction",
+                    "pk": transaction.transaction_id,
+                    "fields": {
+                        "transaction_id": transaction.transaction_id,
+                        "journal_id": transaction.jnl_id,
+                        "date_transaction": str(transaction.transaction_date)[:10],
+                        "period": transaction.period,
+                        "nominal": nominal_lookup[transaction.nominal],
+                        "amount": transaction.amount,
+                        "description": transaction.description
+                    }
+                }
+        reporting_pack.append(store)
 
     print("Saving to file")
     with open("data/reporting_pack.json", "w") as f:
