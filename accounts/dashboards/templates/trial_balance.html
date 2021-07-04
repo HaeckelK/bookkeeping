@@ -15,7 +15,7 @@
                 </tr>
                 {% for balance in balances %}
                 <tr>
-                    <td><a href="/nominals/{{ balance.nominal.name }}">{{ balance.nominal.name }}</a></td>
+                    <td><a href="/nominal_transactions/?nominals={{ balance.nominal.name }}">{{ balance.nominal.name }}</a></td>
                     <td><a href="/nominal_transactions/?nominals={{ balance.nominal.name }}&period_start={{period}}&period_end={{period}}">
                     {% if cumulative is True %}
                         {{ balance.amount_cumulative }}

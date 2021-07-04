@@ -21,4 +21,5 @@ from dashboards import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('trial_balance/', views.trial_balance),
+    path('nominal_transactions/', views.nominal_transactions),
 ]
