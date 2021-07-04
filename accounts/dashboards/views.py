@@ -1,6 +1,6 @@
 from django.shortcuts import render, HttpResponse
 
-from .models import PeriodBalance
+from .models import PeriodBalance, NominalTransaction
 
 
 def trial_balance(request):
@@ -17,3 +17,9 @@ def trial_balance(request):
                "period": period,
                "cumulative": cumulative}
     return render(request, "trial_balance.html", context)
+
+
+def nominal_transactions(request):
+    transactions = NominalTransaction.objects.filter()
+    context = {"transactions": transactions}
+    return render(request, "nominal_transactions.html", context)
