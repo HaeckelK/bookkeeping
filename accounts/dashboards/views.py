@@ -23,6 +23,7 @@ def nominal_transactions(request):
     period_from = int(request.GET.get("period_start", 1))
     period_to = int(request.GET.get("period_end", 12))
     nominal_names = request.GET.get("nominals", "").split(",")
+    query_params = f"&period_start={period_from}&period_end={period_to}"
 
     if nominal_names == [""]:
         nominal_names = NominalAccount.objects.values_list('name', flat=True)
@@ -38,17 +39,18 @@ def nominal_transactions(request):
         except NominalAccount.DoesNotExist:
             pass
         else:
-            link_next = f"/nominal_transactions/?nominals={next_name.name}&period_start={period_from}&period_end={period_to}"
+            link_next = f"/nominal_transactions/?nominals={next_name.name}{query_params}"
         try:
             previous_name = NominalAccount.objects.get(pk=nominal_account.pk-1)
         except NominalAccount.DoesNotExist:
             pass
         else:
-            link_previous = f"/nominal_transactions/?nominals={previous_name.name}&period_start={period_from}&period_end={period_to}"
+            link_previous = f"/nominal_transactions/?nominals={previous_name.name}{query_params}"
 
     context = {"transactions": transactions,
                "period_from": period_from,
                "period_to": period_to,
                "link_next": link_next,
-               "link_previous": link_previous}
+               "link_previous": link_previous,
+               "query_params": query_params}
     return render(request, "nominal_transactions.html", context)

@@ -28,7 +28,7 @@
                 <tr>
                     <td>{{ transaction.transaction_id }}</td>
                     <td>{{ transaction.journal_id }}</td>
-                    <td>{{ transaction.nominal.name }}</td>
+                    <td><a href="/nominal_transactions/?nominals={{ transaction.nominal.name }}{{ query_params }}">{{ transaction.nominal.name }}</a></td>
                     <td>{{ transaction.period }}</td>
                     <td>{{ transaction.date_transaction }}</td>
                     <td style="text-align:right">{{ transaction.amount_display }}</td>
