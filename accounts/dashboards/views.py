@@ -20,6 +20,15 @@ def trial_balance(request):
 
 
 def nominal_transactions(request):
-    transactions = NominalTransaction.objects.filter()
-    context = {"transactions": transactions}
+    period_from = int(request.GET.get("period_start", 1))
+    period_to = int(request.GET.get("period_end", 12))
+    nominal_names = request.GET.get("nominals", "").split(",")
+
+    transactions = NominalTransaction.objects.filter(nominal__name__in=nominal_names,
+                                                    period__gte=period_from,
+                                                    period__lte=period_to)
+
+    context = {"transactions": transactions,
+               "period_from": period_from,
+               "period_to": period_to}
     return render(request, "nominal_transactions.html", context)
