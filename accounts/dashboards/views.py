@@ -1,6 +1,6 @@
 from django.shortcuts import render, HttpResponse
 
-from .models import PeriodBalance, NominalTransaction
+from .models import PeriodBalance, NominalTransaction, NominalAccount
 
 
 def trial_balance(request):
@@ -24,6 +24,8 @@ def nominal_transactions(request):
     period_to = int(request.GET.get("period_end", 12))
     nominal_names = request.GET.get("nominals", "").split(",")
 
+    if nominal_names == [""]:
+        nominal_names = NominalAccount.objects.values_list('name', flat=True)
     transactions = NominalTransaction.objects.filter(nominal__name__in=nominal_names,
                                                     period__gte=period_from,
                                                     period__lte=period_to)
