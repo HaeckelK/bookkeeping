@@ -7,7 +7,9 @@
     </head>
     <body>
         <h1>Nominal Transactions</h1>
-        {{ nominal_names }}
+        {% if link_next != "" %}
+        <a href="{{ link_next }}">Next</a>
+        {% endif %}
         <div class="container">
             <table class="table table-hover">
                 <tr>

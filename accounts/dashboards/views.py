@@ -30,7 +30,19 @@ def nominal_transactions(request):
                                                     period__gte=period_from,
                                                     period__lte=period_to)
 
+    link_next, link_previous = "", ""
+    if len(nominal_names) == 1:
+        nominal_account = NominalAccount.objects.get(name=nominal_names[0])
+        try:
+            next_name = NominalAccount.objects.get(pk=nominal_account.pk+1)
+        except NominalAccount.DoesNotExist:
+            pass
+        else:
+            link_next = f"/nominal_transactions/?nominals={next_name.name}&period_start={period_from}&period_end={period_to}"
+
     context = {"transactions": transactions,
                "period_from": period_from,
-               "period_to": period_to}
+               "period_to": period_to,
+               "link_next": link_next,
+               "link_previous": link_previous}
     return render(request, "nominal_transactions.html", context)
