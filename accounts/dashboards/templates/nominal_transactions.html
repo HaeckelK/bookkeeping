@@ -7,6 +7,9 @@
     </head>
     <body>
         <h1>Nominal Transactions</h1>
+        {% if link_previous != "" %}
+        <a href="{{ link_previous }}">Previous</a>
+        {% endif %}
         {% if link_next != "" %}
         <a href="{{ link_next }}">Next</a>
         {% endif %}

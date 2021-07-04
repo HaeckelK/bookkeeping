@@ -39,6 +39,12 @@ def nominal_transactions(request):
             pass
         else:
             link_next = f"/nominal_transactions/?nominals={next_name.name}&period_start={period_from}&period_end={period_to}"
+        try:
+            previous_name = NominalAccount.objects.get(pk=nominal_account.pk-1)
+        except NominalAccount.DoesNotExist:
+            pass
+        else:
+            link_previous = f"/nominal_transactions/?nominals={previous_name.name}&period_start={period_from}&period_end={period_to}"
 
     context = {"transactions": transactions,
                "period_from": period_from,
