@@ -6,7 +6,7 @@
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     </head>
     <body>
-        <h1>Nominal Transactions: Periods {{ period_from }} to {{ period_to}}</h1>
+        <h1><a href="/nominal_transactions/">Nominal Transactions</a>: Periods {{ period_from }} to {{ period_to}}</h1>
         {% if link_previous != "" %}
         <a href="{{ link_previous }}">Previous</a>
         {% endif %}
@@ -27,7 +27,7 @@
                 {% for transaction in transactions %}
                 <tr>
                     <td>{{ transaction.transaction_id }}</td>
-                    <td>{{ transaction.journal_id }}</td>
+                    <td><a href="/nominal_transactions/?journals={{ transaction.journal_id }}">{{ transaction.journal_id }}</a></td>
                     <td><a href="/nominal_transactions/?nominals={{ transaction.nominal.name }}{{ query_params }}">{{ transaction.nominal.name }}</a></td>
                     <td>{{ transaction.period }}</td>
                     <td>{{ transaction.date_transaction }}</td>
