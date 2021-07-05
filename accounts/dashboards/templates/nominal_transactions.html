@@ -27,7 +27,7 @@
                 {% for transaction in transactions %}
                 <tr>
                     <td>{{ transaction.transaction_id }}</td>
-                    <td>{{ transaction.journal_id }}</td>
+                    <td><a href="/nominal_transactions/?journals={{ transaction.journal_id }}">{{ transaction.journal_id }}</a></td>
                     <td><a href="/nominal_transactions/?nominals={{ transaction.nominal.name }}{{ query_params }}">{{ transaction.nominal.name }}</a></td>
                     <td>{{ transaction.period }}</td>
                     <td>{{ transaction.date_transaction }}</td>
