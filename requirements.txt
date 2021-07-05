@@ -1,3 +1,5 @@
 django
 pandas
 openpyxl
+pytest
+coverage
