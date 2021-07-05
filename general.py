@@ -1,6 +1,7 @@
 from dataclasses import dataclass, asdict
 from typing import List, Dict
 from abc import ABC, abstractmethod
+from copy import copy
 
 import pandas as pd
 
@@ -28,6 +29,17 @@ class GLJournal:
     @property
     def total(self) -> int:
         return sum(x.amount for x in self.lines)
+
+
+def create_opposite_journal(journal: GLJournal) -> GLJournal:
+    new_lines = []
+    for line in journal.lines:
+        new_line = copy(line)
+        new_line.amount = new_line.amount * -1
+        new_lines.append(new_line)
+
+    new_journal = GLJournal(jnl_type=journal.jnl_type, lines=new_lines)
+    return new_journal
 
 
 @dataclass
