@@ -14,6 +14,13 @@ class JournalBalanceError(Exception):
 
 
 @dataclass
+class Period:
+    period: int
+    date_start: str
+    date_end: str
+
+
+@dataclass
 class GLJournalLine:
     nominal: str
     description: str
@@ -151,4 +158,16 @@ class GeneralLedger:
     def __init__(self, ledger: GeneralLedgerTransactions, chart_of_accounts: ChartOfAccounts):
         self.ledger = ledger
         self.chart_of_accounts = chart_of_accounts
+        self.periods = {1: Period(period=1, date_start="01/01/2021", date_end="31/01/21"),
+                        2: Period(period=2, date_start="01/02/2021", date_end="28/02/21"),
+                        3: Period(period=3, date_start="01/03/2021", date_end="31/03/21"),
+                        4: Period(period=4, date_start="01/04/2021", date_end="30/04/21"),
+                        5: Period(period=5, date_start="01/05/2021", date_end="31/05/21"),
+                        6: Period(period=6, date_start="01/06/2021", date_end="30/06/21"),
+                        7: Period(period=7, date_start="01/07/2021", date_end="31/07/21"),
+                        8: Period(period=8, date_start="01/08/2021", date_end="31/08/21"),
+                        9: Period(period=9, date_start="01/09/2021", date_end="30/09/21"),
+                        10: Period(period=10, date_start="01/10/2021", date_end="31/10/21"),
+                        11: Period(period=11, date_start="01/11/2021", date_end="30/11/21"),
+                        12: Period(period=12, date_start="01/12/2021", date_end="31/12/21"),}
         return
