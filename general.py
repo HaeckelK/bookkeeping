@@ -171,3 +171,8 @@ class GeneralLedger:
                         11: Period(period=11, date_start="01/11/2021", date_end="30/11/21"),
                         12: Period(period=12, date_start="01/12/2021", date_end="31/12/21"),}
         return
+
+
+    def add_journal(self, journal: GLJournal) -> List[int]:
+        """Wrapper around self.ledger.add_journal, allow interaction with other GeneralLedger attributes."""
+        return self.ledger.add_journal(journal)
