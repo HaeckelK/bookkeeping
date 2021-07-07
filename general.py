@@ -2,6 +2,7 @@ from dataclasses import dataclass, asdict
 from typing import List, Dict
 from abc import ABC, abstractmethod
 from copy import copy
+import datetime
 
 import pandas as pd
 
@@ -18,7 +19,7 @@ class GLJournalLine:
     nominal: str
     description: str
     amount: int
-    transaction_date: str
+    transaction_date: datetime.datetime
 
 
 @dataclass
@@ -80,6 +81,9 @@ class GeneralLedgerTransactions(PandasLedger):
         if journal.total != 0:
             print(journal)
             raise JournalBalanceError(f"Journal does not balance: {journal.total}")
+        # TODO This is a dev only assert
+        for line in journal.lines:
+            assert isinstance(line.transaction_date, datetime.datetime)
         df = pd.DataFrame([asdict(x) for x in journal.lines])
         df["jnl_type"] = journal.jnl_type
         df["jnl_id"] = self.get_next_journal_id()
