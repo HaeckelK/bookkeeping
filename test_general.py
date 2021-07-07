@@ -1,3 +1,7 @@
+import datetime
+
+from pandas import Timestamp
+
 from general import GLJournal, GLJournalLine
 import general
 
@@ -7,9 +11,9 @@ def test_create_opposite_journal():
     journal = GLJournal(
         jnl_type="gnl",
         lines=[
-            GLJournalLine(nominal="abc", description="description for abc", amount=123, transaction_date="01/01/1990"),
-            GLJournalLine(nominal="def", description="description for def", amount=500, transaction_date="01/01/1990"),
-            GLJournalLine(nominal="ghi", description="description for ghi", amount=-623, transaction_date="01/01/1990"),
+            GLJournalLine(nominal="abc", description="description for abc", amount=123, transaction_date=datetime.datetime(1990, 1, 1)),
+            GLJournalLine(nominal="def", description="description for def", amount=500, transaction_date=datetime.datetime(1990, 1, 1)),
+            GLJournalLine(nominal="ghi", description="description for ghi", amount=-623, transaction_date=datetime.datetime(1990, 1, 1)),
         ],
     )
     # When creating an inverse journal
@@ -37,19 +41,6 @@ def test_add_reversing_journal():
     ledger = general.GeneralLedger(ledger=general.GeneralLedgerTransactions(), chart_of_accounts=None)
 
 
-# TODO having to use this as date to period conversion is currently based on a pandas object to int conversion.
-# Function requires object to have .month attribute
-class DummyDate:
-    def __init__(self, year: int, month: int, day: int):
-        self.year = year
-        self.month = month
-        self.day = day
-        return
-
-    def __str__(self) -> str:
-        return f"{self.day}/{self.month}/{self.year}"
-
-
 def test_general_ledger_add_journal():
     # Given a GeneralLedger with no transactions
     ledger = general.GeneralLedger(ledger=general.GeneralLedgerTransactions(), chart_of_accounts=None)
@@ -57,8 +48,8 @@ def test_general_ledger_add_journal():
     journal = GLJournal(
         jnl_type="gnl",
         lines=[
-            GLJournalLine(nominal="abc", description="description for abc", amount=123, transaction_date="01/01/2021"),
-            GLJournalLine(nominal="def", description="description for def", amount=-123, transaction_date="01/01/2021"),
+            GLJournalLine(nominal="abc", description="description for abc", amount=123, transaction_date=datetime.datetime(2021, 1, 1)),
+            GLJournalLine(nominal="def", description="description for def", amount=-123, transaction_date=datetime.datetime(2021, 1, 1)),
         ],
     )
     ledger.add_journal(journal)
@@ -69,7 +60,6 @@ def test_general_ledger_add_journal():
     # Then journal lines correctly represented
     for line in journal.lines:
         assert ledger.ledger.balances[line.nominal] == line.amount
-    print(ledger.ledger.list_transactions())
     assert ledger.ledger.list_transactions() == [
         general.GeneralLedgerTransaction(
             transaction_id=0,
@@ -78,8 +68,8 @@ def test_general_ledger_add_journal():
             jnl_type="gnl",
             amount=123,
             description="description for abc",
-            transaction_date=DummyDate(2021, 1, 1),
-            period=-1,
+            transaction_date=Timestamp('2021-01-01 00:00:00'),
+            period=1,
         ),
         general.GeneralLedgerTransaction(
             transaction_id=1,
@@ -88,7 +78,7 @@ def test_general_ledger_add_journal():
             jnl_type="gnl",
             amount=-123,
             description="description for def",
-            transaction_date=DummyDate(2021, 1, 1),
-            period=-1,
+            transaction_date=Timestamp('2021-01-01 00:00:00'),
+            period=1,
         ),
     ]
