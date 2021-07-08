@@ -36,11 +36,7 @@ def test_create_opposite_journal():
         assert line.transaction_date == new_line.transaction_date
 
 
-def test_add_reversing_journal():
-    # Given a GeneralLedger with no transactions
-    ledger = general.GeneralLedger(ledger=general.GeneralLedgerTransactions(), chart_of_accounts=None)
-
-
+# TODO test transaction_ids returned
 def test_general_ledger_add_journal():
     # Given a GeneralLedger with no transactions
     ledger = general.GeneralLedger(ledger=general.GeneralLedgerTransactions(), chart_of_accounts=None)
@@ -80,5 +76,67 @@ def test_general_ledger_add_journal():
             description="description for def",
             transaction_date=Timestamp('2021-01-01 00:00:00'),
             period=1,
+        ),
+    ]
+
+
+# TODO test transaction_ids returned
+def test_general_ledger_add_journal_reversing():
+    # Given a GeneralLedger with no transactions
+    ledger = general.GeneralLedger(ledger=general.GeneralLedgerTransactions(), chart_of_accounts=None)
+    # When adding a journal marked as gnl_rev
+    journal = GLJournal(
+        jnl_type="gnl_rev",
+        lines=[
+            GLJournalLine(nominal="abc", description="description for abc", amount=123, transaction_date=datetime.datetime(2021, 1, 1)),
+            GLJournalLine(nominal="def", description="description for def", amount=-123, transaction_date=datetime.datetime(2021, 1, 1)),
+        ],
+    )
+    ledger.add_journal(journal)
+    # Then GL balances
+    assert ledger.ledger.balance == 0
+    # Then num transactions == num journal lines * 2
+    assert len(ledger.ledger.list_transactions()) == len(journal.lines) * 2
+    # Then journal lines correctly represented
+    assert ledger.ledger.list_transactions() == [
+        general.GeneralLedgerTransaction(
+            transaction_id=0,
+            jnl_id=0,
+            nominal="abc",
+            jnl_type="gnl_rev",
+            amount=123,
+            description="description for abc",
+            transaction_date=Timestamp('2021-01-01 00:00:00'),
+            period=1,
+        ),
+        general.GeneralLedgerTransaction(
+            transaction_id=1,
+            jnl_id=0,
+            nominal="def",
+            jnl_type="gnl_rev",
+            amount=-123,
+            description="description for def",
+            transaction_date=Timestamp('2021-01-01 00:00:00'),
+            period=1,
+        ),
+        general.GeneralLedgerTransaction(
+            transaction_id=2,
+            jnl_id=1,
+            nominal="abc",
+            jnl_type="gnl_rev",
+            amount=-123,
+            description="description for abc",
+            transaction_date=Timestamp('2021-02-01 00:00:00'),
+            period=2,
+        ),
+        general.GeneralLedgerTransaction(
+            transaction_id=3,
+            jnl_id=1,
+            nominal="def",
+            jnl_type="gnl_rev",
+            amount=123,
+            description="description for def",
+            transaction_date=Timestamp('2021-02-01 00:00:00'),
+            period=2,
         ),
     ]

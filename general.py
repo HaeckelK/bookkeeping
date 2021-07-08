@@ -14,11 +14,12 @@ class JournalBalanceError(Exception):
     pass
 
 
+# TODO add previous and next period and NullPeriod
 @dataclass
 class Period:
     period: int
-    date_start: str
-    date_end: str
+    date_start: datetime.datetime
+    date_end: datetime.datetime
 
 
 @dataclass
@@ -162,21 +163,33 @@ class GeneralLedger:
     def __init__(self, ledger: GeneralLedgerTransactions, chart_of_accounts: ChartOfAccounts):
         self.ledger = ledger
         self.chart_of_accounts = chart_of_accounts
-        self.periods = {1: Period(period=1, date_start="01/01/2021", date_end="31/01/21"),
-                        2: Period(period=2, date_start="01/02/2021", date_end="28/02/21"),
-                        3: Period(period=3, date_start="01/03/2021", date_end="31/03/21"),
-                        4: Period(period=4, date_start="01/04/2021", date_end="30/04/21"),
-                        5: Period(period=5, date_start="01/05/2021", date_end="31/05/21"),
-                        6: Period(period=6, date_start="01/06/2021", date_end="30/06/21"),
-                        7: Period(period=7, date_start="01/07/2021", date_end="31/07/21"),
-                        8: Period(period=8, date_start="01/08/2021", date_end="31/08/21"),
-                        9: Period(period=9, date_start="01/09/2021", date_end="30/09/21"),
-                        10: Period(period=10, date_start="01/10/2021", date_end="31/10/21"),
-                        11: Period(period=11, date_start="01/11/2021", date_end="30/11/21"),
-                        12: Period(period=12, date_start="01/12/2021", date_end="31/12/21"),}
+        self.periods = {1: Period(period=1, date_start=datetime.datetime(2021, 1, 1), date_end="31/01/21"),
+                        2: Period(period=2, date_start=datetime.datetime(2021, 2, 1), date_end="28/02/21"),
+                        3: Period(period=3, date_start=datetime.datetime(2021, 3, 1), date_end="31/03/21"),
+                        4: Period(period=4, date_start=datetime.datetime(2021, 4, 1), date_end="30/04/21"),
+                        5: Period(period=5, date_start=datetime.datetime(2021, 5, 1), date_end="31/05/21"),
+                        6: Period(period=6, date_start=datetime.datetime(2021, 6, 1), date_end="30/06/21"),
+                        7: Period(period=7, date_start=datetime.datetime(2021, 7, 1), date_end="31/07/21"),
+                        8: Period(period=8, date_start=datetime.datetime(2021, 8, 1), date_end="31/08/21"),
+                        9: Period(period=9, date_start=datetime.datetime(2021, 9, 1), date_end="30/09/21"),
+                        10: Period(period=10, date_start=datetime.datetime(2021, 10, 1), date_end="31/10/21"),
+                        11: Period(period=11, date_start=datetime.datetime(2021, 11, 1), date_end="30/11/21"),
+                        12: Period(period=12, date_start=datetime.datetime(2021, 12, 1), date_end="31/12/21"),}
         return
 
 
     def add_journal(self, journal: GLJournal) -> List[int]:
         """Wrapper around self.ledger.add_journal, allow interaction with other GeneralLedger attributes."""
-        return self.ledger.add_journal(journal)
+        # TODO store journals in self.journal_ledger
+        # TODO meta items such as reversing journal creation
+        transaction_ids = self.ledger.add_journal(journal)
+        if journal.jnl_type.endswith("_rev"):
+            rev_journal = create_opposite_journal(journal)
+            # TODO hack to shift period, need to use self.periods
+            for line in rev_journal.lines:
+                period = line.transaction_date.month
+                # TODO what about period that doesn't exist?
+                date_start = self.periods[period + 1].date_start
+                line.transaction_date = date_start
+            self.ledger.add_journal(rev_journal)
+        return transaction_ids
