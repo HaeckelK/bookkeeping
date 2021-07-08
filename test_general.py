@@ -2,7 +2,7 @@ import datetime
 
 from pandas import Timestamp
 
-from general import GLJournal, GLJournalLine
+from general import GLJournal, GLJournalLine, GeneralLedger
 import general
 
 
@@ -140,3 +140,32 @@ def test_general_ledger_add_journal_reversing():
             period=2,
         ),
     ]
+
+
+# TODO balance at start or end
+# TODO start or end of period
+def test_create_prepayment_journal():
+    # Given a NewPrepayment object
+    period_start = 2
+    new = general.NewPrepayment(amount=600, nominal="abc", period_start=2, periods=3, description="some description",
+                                description_recurring="monthly abc")
+    # When creating prepayment
+    periods = GeneralLedger(ledger=None, chart_of_accounts=None).periods
+    jnls = general.create_prepayment_journal(new, periods)
+    # Then default jnls created as
+    assert jnls == [GLJournal(jnl_type="ppmt", lines=[GLJournalLine(nominal="prepayments", amount=new.amount, description=new.description,
+                                                                    transaction_date=datetime.datetime(2021, period_start, 1, 0, 0)),
+                                                    GLJournalLine(nominal=new.nominal, amount=-new.amount, description=new.description,
+                                                                    transaction_date=datetime.datetime(2021, period_start, 1, 0, 0))]),
+GLJournal(jnl_type="ppmt", lines=[GLJournalLine(nominal="prepayments", amount=-200, description=new.description_recurring,
+                                                                    transaction_date=datetime.datetime(2021, period_start + 1, 1, 0, 0)),
+                                                    GLJournalLine(nominal=new.nominal, amount=200, description=new.description_recurring,
+                                                                    transaction_date=datetime.datetime(2021, period_start + 1, 1, 0, 0))]),
+GLJournal(jnl_type="ppmt", lines=[GLJournalLine(nominal="prepayments", amount=-200, description=new.description_recurring,
+                                                                    transaction_date=datetime.datetime(2021, period_start + 2, 1, 0, 0)),
+                                                    GLJournalLine(nominal=new.nominal, amount=200, description=new.description_recurring,
+                                                                    transaction_date=datetime.datetime(2021, period_start + 2, 1, 0, 0))]),
+GLJournal(jnl_type="ppmt", lines=[GLJournalLine(nominal="prepayments", amount=-200, description=new.description_recurring,
+                                                                    transaction_date=datetime.datetime(2021, period_start + 3, 1, 0, 0)),
+                                                    GLJournalLine(nominal=new.nominal, amount=200, description=new.description_recurring,
+                                                                    transaction_date=datetime.datetime(2021, period_start + 3, 1, 0, 0))])]
