@@ -471,7 +471,7 @@ def entity_loop(filename: str, entity_name: str):
             journals = inter_ledger_jnl_creator.create_pl_to_gl_journals(pl_unposted_invoices)
             for journal, transaction_ids in journals:
                 print(f"..{journal.jnl_type}: {journal.total}")
-                ids = general.ledger.add_journal(journal)
+                ids = general.add_journal(journal)
                 print("....General ledger ids:", ids)
                 print("..marking extracted in Purchase Ledger", transaction_ids)
                 purchase_ledger.mark_extracted_to_gl(transaction_ids)
@@ -482,7 +482,7 @@ def entity_loop(filename: str, entity_name: str):
             journals = inter_ledger_jnl_creator.create_sl_to_gl_journals(pl_unposted_invoices)
             for journal in journals:
                 print(f"..{journal.jnl_type}: {journal.total}")
-                ids = general.ledger.add_journal(journal)
+                ids = general.add_journal(journal)
                 print("....General ledger ids:", ids)
                 print("..marking extracted in Purchase Ledger", ids)
                 # sales_ledger.mark_extracted_to_gl(ids)
@@ -495,13 +495,13 @@ def entity_loop(filename: str, entity_name: str):
         if bank_transactions:
             journals = inter_ledger_jnl_creator.create_bank_to_gl_journals(bank_transactions)
             for journal in journals:
-                general.ledger.add_journal(journal)
+                general.add_journal(journal)
                 # Hack - needs to only mark items that were just posted
                 bank.ledger.mark_all_posted()
 
         print("\nPosting GL Journals")
         for journal in gl_journals:
-            general.ledger.add_journal(journal)
+            general.add_journal(journal)
 
         # Validation
         print("Running validation checks")
