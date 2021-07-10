@@ -43,6 +43,7 @@ class GLJournalLine:
 @dataclass
 class GLJournal:
     jnl_type: str
+    transaction_date: datetime.datetime
     lines: List[GLJournalLine]
 
     @property
@@ -57,7 +58,7 @@ def create_opposite_journal(journal: GLJournal) -> GLJournal:
         new_line.amount = new_line.amount * -1
         new_lines.append(new_line)
 
-    new_journal = GLJournal(jnl_type=journal.jnl_type, lines=new_lines)
+    new_journal = GLJournal(jnl_type=journal.jnl_type, lines=new_lines, transaction_date=journal.transaction_date)
     return new_journal
 
 
@@ -71,6 +72,7 @@ def create_prepayment_journal(new_prepayment: NewPrepayment, periods: Dict[int, 
     balancing_amount = new_prepayment.amount - release_amount * new_prepayment.periods
 
     jnl = GLJournal(jnl_type="ppmt",
+                    transaction_date=date,
                     lines=[GLJournalLine(nominal="prepayments", amount=new_prepayment.amount, description=new_prepayment.description,
                                          transaction_date=date),
                            GLJournalLine(nominal=new_prepayment.nominal, amount=-new_prepayment.amount, description=new_prepayment.description,
@@ -86,6 +88,7 @@ def create_prepayment_journal(new_prepayment: NewPrepayment, periods: Dict[int, 
             amount = release_amount + balancing_amount
 
         jnl = GLJournal(jnl_type="ppmt",
+                        transaction_date=date,
                         lines=[GLJournalLine(nominal="prepayments", amount=-amount, description=new_prepayment.description_recurring,
                                             transaction_date=date),
                             GLJournalLine(nominal=new_prepayment.nominal, amount=amount, description=new_prepayment.description_recurring,

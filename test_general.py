@@ -10,6 +10,7 @@ def test_create_opposite_journal():
     # Given a journal with multiple lines with non zero amount
     journal = GLJournal(
         jnl_type="gnl",
+        transaction_date=datetime.datetime(2000, 1, 1),
         lines=[
             GLJournalLine(
                 nominal="abc",
@@ -58,6 +59,7 @@ def test_general_ledger_add_journal():
     # When adding a journal
     journal = GLJournal(
         jnl_type="gnl",
+        transaction_date=datetime.datetime(2021, 1, 1),
         lines=[
             GLJournalLine(
                 nominal="abc",
@@ -112,6 +114,7 @@ def test_general_ledger_add_journal_reversing():
     # When adding a journal marked as gnl_rev
     journal = GLJournal(
         jnl_type="gnl_rev",
+        transaction_date=datetime.datetime(2021, 1, 1),
         lines=[
             GLJournalLine(
                 nominal="abc",
@@ -197,6 +200,7 @@ def test_create_prepayment_journal():
     assert jnls == [
         GLJournal(
             jnl_type="ppmt",
+            transaction_date=datetime.datetime(2021, period_start, 1, 0, 0),
             lines=[
                 GLJournalLine(
                     nominal="prepayments",
@@ -214,6 +218,7 @@ def test_create_prepayment_journal():
         ),
         GLJournal(
             jnl_type="ppmt",
+            transaction_date=datetime.datetime(2021, period_start + 1, 1, 0, 0),
             lines=[
                 GLJournalLine(
                     nominal="prepayments",
@@ -231,6 +236,7 @@ def test_create_prepayment_journal():
         ),
         GLJournal(
             jnl_type="ppmt",
+            transaction_date=datetime.datetime(2021, period_start + 2, 1, 0, 0),
             lines=[
                 GLJournalLine(
                     nominal="prepayments",
@@ -248,6 +254,7 @@ def test_create_prepayment_journal():
         ),
         GLJournal(
             jnl_type="ppmt",
+            transaction_date=datetime.datetime(2021, period_start + 3, 1, 0, 0),
             lines=[
                 GLJournalLine(
                     nominal="prepayments",
