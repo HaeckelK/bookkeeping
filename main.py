@@ -255,11 +255,7 @@ class SourceDataParser:
             raw_lines = [x for x in all_lines if x["header_id"] == header["id"]]
             lines = []
             for raw_line in raw_lines:
-                lines.append(
-                    GLJournalLine(
-                        raw_line["nominal"], raw_line["description"], raw_line["amount"]
-                    )
-                )
+                lines.append(GLJournalLine(raw_line["nominal"], raw_line["description"], raw_line["amount"]))
             # TODO assumes final line of journal has a date that is correct for all lines
             invoice = GLJournal(header["jnl_type"], lines=lines, transaction_date=raw_line["transaction_date"])
             invoices.append(invoice)
@@ -544,13 +540,15 @@ def entity_loop(filename: str, entity_name: str):
     print("..nominals")
     nominal_lookup = {}
     for i, nominal in enumerate(general.chart_of_accounts.nominals):
-        store = {"model": "dashboards.nominalaccount",  # TODO coupling
-                 "pk": i + 1,
-                 "fields": {
-                    "name": nominal.name,
-                    "expected_sign": nominal.expected_sign,
-                    "is_control_account": nominal.control_account,
-                    "is_bank_account": nominal.bank_account}
+        store = {
+            "model": "dashboards.nominalaccount",  # TODO coupling
+            "pk": i + 1,
+            "fields": {
+                "name": nominal.name,
+                "expected_sign": nominal.expected_sign,
+                "is_control_account": nominal.control_account,
+                "is_bank_account": nominal.bank_account,
+            },
         }
         nominal_lookup[nominal.name] = i + 1
         reporting_pack.append(store)
@@ -561,33 +559,35 @@ def entity_loop(filename: str, entity_name: str):
     pk = 1
     for nominal in general.chart_of_accounts.nominals:
         for tmp_period in range(1, period + 1):
-            store = {"model": "dashboards.periodbalance",
-                     "pk": pk,
-                     "fields": {
-                        "nominal": nominal_lookup[nominal.name],
-                        "period": tmp_period,
-                        "amount": 999,
-                        "amount_cumulative": 123,
-                        "count_transactions": 0
-                        }
-                    }
+            store = {
+                "model": "dashboards.periodbalance",
+                "pk": pk,
+                "fields": {
+                    "nominal": nominal_lookup[nominal.name],
+                    "period": tmp_period,
+                    "amount": 999,
+                    "amount_cumulative": 123,
+                    "count_transactions": 0,
+                },
+            }
             reporting_pack.append(store)
             pk += 1
 
     print("..nominal transactions")
     for transaction in general.ledger.list_transactions():
-        store = {"model": "dashboards.nominaltransaction",
-                    "pk": transaction.transaction_id,
-                    "fields": {
-                        "transaction_id": transaction.transaction_id,
-                        "journal_id": transaction.jnl_id,
-                        "date_transaction": str(transaction.transaction_date)[:10],
-                        "period": transaction.period,
-                        "nominal": nominal_lookup[transaction.nominal],
-                        "amount": transaction.amount,
-                        "description": transaction.description
-                    }
-                }
+        store = {
+            "model": "dashboards.nominaltransaction",
+            "pk": transaction.transaction_id,
+            "fields": {
+                "transaction_id": transaction.transaction_id,
+                "journal_id": transaction.jnl_id,
+                "date_transaction": str(transaction.transaction_date)[:10],
+                "period": transaction.period,
+                "nominal": nominal_lookup[transaction.nominal],
+                "amount": transaction.amount,
+                "description": transaction.description,
+            },
+        }
         reporting_pack.append(store)
 
     print("Saving to file")

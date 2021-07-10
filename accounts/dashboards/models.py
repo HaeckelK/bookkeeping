@@ -3,17 +3,13 @@ from django.db import models
 
 class NominalAccount(models.Model):
     EXPECTED_SIGN_CHOICES = [
-        ('dr', 'debit'),
-        ('cr', 'credit'),
+        ("dr", "debit"),
+        ("cr", "credit"),
     ]
     name = models.CharField(max_length=100)
-    expected_sign = models.CharField(
-        max_length=2,
-        choices=EXPECTED_SIGN_CHOICES
-    )
+    expected_sign = models.CharField(max_length=2, choices=EXPECTED_SIGN_CHOICES)
     is_control_account = models.BooleanField()
     is_bank_account = models.BooleanField()
-
 
     def __str__(self) -> str:
         return self.name
