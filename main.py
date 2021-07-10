@@ -257,10 +257,11 @@ class SourceDataParser:
             for raw_line in raw_lines:
                 lines.append(
                     GLJournalLine(
-                        raw_line["nominal"], raw_line["description"], raw_line["amount"], raw_line["transaction_date"]
+                        raw_line["nominal"], raw_line["description"], raw_line["amount"]
                     )
                 )
-            invoice = GLJournal(header["jnl_type"], lines=lines, transaction_date=datetime(1999, 12, 31))
+            # TODO assumes final line of journal has a date that is correct for all lines
+            invoice = GLJournal(header["jnl_type"], lines=lines, transaction_date=raw_line["transaction_date"])
             invoices.append(invoice)
         return invoices
 
@@ -286,7 +287,6 @@ class InterLedgerJournalCreator:
                 nominal="purchase_ledger_control_account",
                 description="PL dispersal to GL",
                 amount=-total,
-                transaction_date=transaction_date,
             )
         ]
         for invoice in invoices:
@@ -295,7 +295,6 @@ class InterLedgerJournalCreator:
                     nominal=line.nominal,
                     description=line.description,
                     amount=line.amount,
-                    transaction_date=line.transaction_date,
                 )
                 gl_lines.append(gl_line)
                 transaction_ids.extend(invoice.transaction_ids)
@@ -313,7 +312,6 @@ class InterLedgerJournalCreator:
                 nominal="sales_ledger_control_account",
                 description="SL dispersal to GL",
                 amount=-total,
-                transaction_date=transaction_date,
             )
         ]
         for invoice in invoices:
@@ -322,7 +320,6 @@ class InterLedgerJournalCreator:
                     nominal=line.nominal,
                     description=line.description,
                     amount=line.amount,
-                    transaction_date=line.transaction_date,
                 )
                 gl_lines.append(gl_line)
 
@@ -357,16 +354,14 @@ class InterLedgerJournalCreator:
                     nominal=bank_code,
                     description=description,
                     amount=amount,
-                    transaction_date=transcation_date,
                 ),
                 GLJournalLine(
                     nominal=gl_account,
                     description=description,
                     amount=-amount,
-                    transaction_date=transcation_date,
                 ),
             ]
-            journal = GLJournal(jnl_type="bank", lines=gl_lines, transaction_date=datetime(1999, 12, 31))
+            journal = GLJournal(jnl_type="bank", lines=gl_lines, transaction_date=transcation_date)
             journals.append(journal)
         return journals
 
