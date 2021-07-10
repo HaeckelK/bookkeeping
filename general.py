@@ -70,12 +70,18 @@ def create_prepayment_journal(new_prepayment: NewPrepayment, periods: Dict[int, 
     release_amount = int(new_prepayment.amount / new_prepayment.periods)
     balancing_amount = new_prepayment.amount - release_amount * new_prepayment.periods
 
-    jnl = GLJournal(jnl_type="ppmt",
-                    transaction_date=date,
-                    lines=[GLJournalLine(nominal="prepayments", amount=new_prepayment.amount, description=new_prepayment.description),
-                           GLJournalLine(nominal=new_prepayment.nominal, amount=-new_prepayment.amount, description=new_prepayment.description)])
+    jnl = GLJournal(
+        jnl_type="ppmt",
+        transaction_date=date,
+        lines=[
+            GLJournalLine(nominal="prepayments", amount=new_prepayment.amount, description=new_prepayment.description),
+            GLJournalLine(
+                nominal=new_prepayment.nominal, amount=-new_prepayment.amount, description=new_prepayment.description
+            ),
+        ],
+    )
     jnls.append(jnl)
-    
+
     for i in range(new_prepayment.periods):
         period += 1
         date = periods[period].date_start
@@ -84,10 +90,16 @@ def create_prepayment_journal(new_prepayment: NewPrepayment, periods: Dict[int, 
         else:
             amount = release_amount + balancing_amount
 
-        jnl = GLJournal(jnl_type="ppmt",
-                        transaction_date=date,
-                        lines=[GLJournalLine(nominal="prepayments", amount=-amount, description=new_prepayment.description_recurring),
-                            GLJournalLine(nominal=new_prepayment.nominal, amount=amount, description=new_prepayment.description_recurring)])
+        jnl = GLJournal(
+            jnl_type="ppmt",
+            transaction_date=date,
+            lines=[
+                GLJournalLine(nominal="prepayments", amount=-amount, description=new_prepayment.description_recurring),
+                GLJournalLine(
+                    nominal=new_prepayment.nominal, amount=amount, description=new_prepayment.description_recurring
+                ),
+            ],
+        )
         jnls.append(jnl)
 
     return jnls
@@ -206,20 +218,21 @@ class GeneralLedger:
     def __init__(self, ledger: GeneralLedgerTransactions, chart_of_accounts: ChartOfAccounts):
         self.ledger = ledger
         self.chart_of_accounts = chart_of_accounts
-        self.periods = {1: Period(period=1, date_start=datetime.datetime(2021, 1, 1), date_end=datetime.datetime(2021, 1, 31)),
-                        2: Period(period=2, date_start=datetime.datetime(2021, 2, 1), date_end=datetime.datetime(2021, 2, 28)),
-                        3: Period(period=3, date_start=datetime.datetime(2021, 3, 1), date_end=datetime.datetime(2021, 3, 31)),
-                        4: Period(period=4, date_start=datetime.datetime(2021, 4, 1), date_end=datetime.datetime(2021, 4, 30)),
-                        5: Period(period=5, date_start=datetime.datetime(2021, 5, 1), date_end=datetime.datetime(2021, 5, 31)),
-                        6: Period(period=6, date_start=datetime.datetime(2021, 6, 1), date_end=datetime.datetime(2021, 6, 30)),
-                        7: Period(period=7, date_start=datetime.datetime(2021, 7, 1), date_end=datetime.datetime(2021, 7, 31)),
-                        8: Period(period=8, date_start=datetime.datetime(2021, 8, 1), date_end=datetime.datetime(2021, 8, 31)),
-                        9: Period(period=9, date_start=datetime.datetime(2021, 9, 1), date_end=datetime.datetime(2021, 9, 30)),
-                        10: Period(period=10, date_start=datetime.datetime(2021, 10, 1), date_end=datetime.datetime(2021, 10, 31)),
-                        11: Period(period=11, date_start=datetime.datetime(2021, 11, 1), date_end=datetime.datetime(2021, 11, 30)),
-                        12: Period(period=12, date_start=datetime.datetime(2021, 12, 1), date_end=datetime.datetime(2021, 12, 31)),}
+        self.periods = {
+            1: Period(period=1, date_start=datetime.datetime(2021, 1, 1), date_end=datetime.datetime(2021, 1, 31)),
+            2: Period(period=2, date_start=datetime.datetime(2021, 2, 1), date_end=datetime.datetime(2021, 2, 28)),
+            3: Period(period=3, date_start=datetime.datetime(2021, 3, 1), date_end=datetime.datetime(2021, 3, 31)),
+            4: Period(period=4, date_start=datetime.datetime(2021, 4, 1), date_end=datetime.datetime(2021, 4, 30)),
+            5: Period(period=5, date_start=datetime.datetime(2021, 5, 1), date_end=datetime.datetime(2021, 5, 31)),
+            6: Period(period=6, date_start=datetime.datetime(2021, 6, 1), date_end=datetime.datetime(2021, 6, 30)),
+            7: Period(period=7, date_start=datetime.datetime(2021, 7, 1), date_end=datetime.datetime(2021, 7, 31)),
+            8: Period(period=8, date_start=datetime.datetime(2021, 8, 1), date_end=datetime.datetime(2021, 8, 31)),
+            9: Period(period=9, date_start=datetime.datetime(2021, 9, 1), date_end=datetime.datetime(2021, 9, 30)),
+            10: Period(period=10, date_start=datetime.datetime(2021, 10, 1), date_end=datetime.datetime(2021, 10, 31)),
+            11: Period(period=11, date_start=datetime.datetime(2021, 11, 1), date_end=datetime.datetime(2021, 11, 30)),
+            12: Period(period=12, date_start=datetime.datetime(2021, 12, 1), date_end=datetime.datetime(2021, 12, 31)),
+        }
         return
-
 
     def add_journal(self, journal: GLJournal) -> List[int]:
         """Wrapper around self.ledger.add_journal, allow interaction with other GeneralLedger attributes."""

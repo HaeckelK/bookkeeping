@@ -8,65 +8,73 @@ class Migration(migrations.Migration):
 
     initial = True
 
-    dependencies = [
-    ]
+    dependencies = []
 
     operations = [
         migrations.CreateModel(
-            name='GLTransactionLine',
+            name="GLTransactionLine",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
             ],
         ),
         migrations.CreateModel(
-            name='NominalAccount',
+            name="NominalAccount",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('name', models.CharField(max_length=100)),
-                ('expected_sign', models.CharField(choices=[('dr', 'debit'), ('cr', 'credit')], max_length=2)),
-                ('is_control_account', models.BooleanField()),
-                ('is_bank_account', models.BooleanField()),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("name", models.CharField(max_length=100)),
+                ("expected_sign", models.CharField(choices=[("dr", "debit"), ("cr", "credit")], max_length=2)),
+                ("is_control_account", models.BooleanField()),
+                ("is_bank_account", models.BooleanField()),
             ],
         ),
         migrations.CreateModel(
-            name='PeriodBalance',
+            name="PeriodBalance",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('period', models.IntegerField()),
-                ('amount', models.IntegerField()),
-                ('amount_cumulative', models.IntegerField()),
-                ('count_transactions', models.IntegerField()),
-                ('nominal', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='dashboards.nominalaccount')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("period", models.IntegerField()),
+                ("amount", models.IntegerField()),
+                ("amount_cumulative", models.IntegerField()),
+                ("count_transactions", models.IntegerField()),
+                (
+                    "nominal",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="dashboards.nominalaccount"),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='NominalTransactions',
+            name="NominalTransactions",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('transaction_id', models.IntegerField(unique=True)),
-                ('journal_id', models.IntegerField()),
-                ('date_transaction', models.DateField()),
-                ('period', models.IntegerField()),
-                ('amount', models.IntegerField()),
-                ('description', models.CharField(max_length=500)),
-                ('nominal', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='dashboards.nominalaccount')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("transaction_id", models.IntegerField(unique=True)),
+                ("journal_id", models.IntegerField()),
+                ("date_transaction", models.DateField()),
+                ("period", models.IntegerField()),
+                ("amount", models.IntegerField()),
+                ("description", models.CharField(max_length=500)),
+                (
+                    "nominal",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="dashboards.nominalaccount"),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='JournalLine',
+            name="JournalLine",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('amount', models.IntegerField()),
-                ('nominal', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='dashboards.nominalaccount')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("amount", models.IntegerField()),
+                (
+                    "nominal",
+                    models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to="dashboards.nominalaccount"),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Journal',
+            name="Journal",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('description', models.CharField(max_length=250)),
-                ('period', models.IntegerField()),
-                ('lines', models.ManyToManyField(to='dashboards.JournalLine')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
+                ("description", models.CharField(max_length=250)),
+                ("period", models.IntegerField()),
+                ("lines", models.ManyToManyField(to="dashboards.JournalLine")),
             ],
         ),
     ]
