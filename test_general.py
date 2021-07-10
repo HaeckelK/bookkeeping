@@ -10,24 +10,22 @@ def test_create_opposite_journal():
     # Given a journal with multiple lines with non zero amount
     journal = GLJournal(
         jnl_type="gnl",
+        transaction_date=datetime.datetime(2000, 1, 1),
         lines=[
             GLJournalLine(
                 nominal="abc",
                 description="description for abc",
                 amount=123,
-                transaction_date=datetime.datetime(1990, 1, 1),
             ),
             GLJournalLine(
                 nominal="def",
                 description="description for def",
                 amount=500,
-                transaction_date=datetime.datetime(1990, 1, 1),
             ),
             GLJournalLine(
                 nominal="ghi",
                 description="description for ghi",
                 amount=-623,
-                transaction_date=datetime.datetime(1990, 1, 1),
             ),
         ],
     )
@@ -47,8 +45,6 @@ def test_create_opposite_journal():
         assert line.description == new_line.description
         # Then have opposite amounts
         assert line.amount == -new_line.amount
-        # Then have same transaction_date
-        assert line.transaction_date == new_line.transaction_date
 
 
 # TODO test transaction_ids returned
@@ -58,18 +54,17 @@ def test_general_ledger_add_journal():
     # When adding a journal
     journal = GLJournal(
         jnl_type="gnl",
+        transaction_date=datetime.datetime(2021, 1, 1),
         lines=[
             GLJournalLine(
                 nominal="abc",
                 description="description for abc",
                 amount=123,
-                transaction_date=datetime.datetime(2021, 1, 1),
             ),
             GLJournalLine(
                 nominal="def",
                 description="description for def",
                 amount=-123,
-                transaction_date=datetime.datetime(2021, 1, 1),
             ),
         ],
     )
@@ -112,18 +107,17 @@ def test_general_ledger_add_journal_reversing():
     # When adding a journal marked as gnl_rev
     journal = GLJournal(
         jnl_type="gnl_rev",
+        transaction_date=datetime.datetime(2021, 1, 1),
         lines=[
             GLJournalLine(
                 nominal="abc",
                 description="description for abc",
                 amount=123,
-                transaction_date=datetime.datetime(2021, 1, 1),
             ),
             GLJournalLine(
                 nominal="def",
                 description="description for def",
                 amount=-123,
-                transaction_date=datetime.datetime(2021, 1, 1),
             ),
         ],
     )
@@ -197,69 +191,65 @@ def test_create_prepayment_journal():
     assert jnls == [
         GLJournal(
             jnl_type="ppmt",
+            transaction_date=datetime.datetime(2021, period_start, 1, 0, 0),
             lines=[
                 GLJournalLine(
                     nominal="prepayments",
                     amount=new.amount,
                     description=new.description,
-                    transaction_date=datetime.datetime(2021, period_start, 1, 0, 0),
                 ),
                 GLJournalLine(
                     nominal=new.nominal,
                     amount=-new.amount,
                     description=new.description,
-                    transaction_date=datetime.datetime(2021, period_start, 1, 0, 0),
                 ),
             ],
         ),
         GLJournal(
             jnl_type="ppmt",
+            transaction_date=datetime.datetime(2021, period_start + 1, 1, 0, 0),
             lines=[
                 GLJournalLine(
                     nominal="prepayments",
                     amount=-200,
                     description=new.description_recurring,
-                    transaction_date=datetime.datetime(2021, period_start + 1, 1, 0, 0),
                 ),
                 GLJournalLine(
                     nominal=new.nominal,
                     amount=200,
                     description=new.description_recurring,
-                    transaction_date=datetime.datetime(2021, period_start + 1, 1, 0, 0),
                 ),
             ],
         ),
         GLJournal(
             jnl_type="ppmt",
+            transaction_date=datetime.datetime(2021, period_start + 2, 1, 0, 0),
             lines=[
                 GLJournalLine(
                     nominal="prepayments",
                     amount=-200,
                     description=new.description_recurring,
-                    transaction_date=datetime.datetime(2021, period_start + 2, 1, 0, 0),
                 ),
                 GLJournalLine(
                     nominal=new.nominal,
                     amount=200,
                     description=new.description_recurring,
-                    transaction_date=datetime.datetime(2021, period_start + 2, 1, 0, 0),
                 ),
             ],
         ),
         GLJournal(
             jnl_type="ppmt",
+            transaction_date=datetime.datetime(2021, period_start + 3, 1, 0, 0),
             lines=[
                 GLJournalLine(
                     nominal="prepayments",
                     amount=-200,
                     description=new.description_recurring,
-                    transaction_date=datetime.datetime(2021, period_start + 3, 1, 0, 0),
                 ),
                 GLJournalLine(
                     nominal=new.nominal,
                     amount=200,
                     description=new.description_recurring,
-                    transaction_date=datetime.datetime(2021, period_start + 3, 1, 0, 0),
                 ),
             ],
         ),
