@@ -169,3 +169,22 @@ GLJournal(jnl_type="ppmt", lines=[GLJournalLine(nominal="prepayments", amount=-2
                                                                     transaction_date=datetime.datetime(2021, period_start + 3, 1, 0, 0)),
                                                     GLJournalLine(nominal=new.nominal, amount=200, description=new.description_recurring,
                                                                     transaction_date=datetime.datetime(2021, period_start + 3, 1, 0, 0))])]
+
+
+def test_create_prepayment_journal_balancing_amount():
+    # Given a NewPrepayment where amount / periods is not an integer
+    new = general.NewPrepayment(amount=700, nominal="abc", period_start=2, periods=3, description="some description",
+                                description_recurring="monthly abc")
+    # When creating prepayment journals
+    periods = GeneralLedger(ledger=None, chart_of_accounts=None).periods
+    jnls = general.create_prepayment_journal(new, periods)
+    # Then total of journal lines by nominal equals zero
+    prepayment_balance, nominal_balance = 0, 0
+    for jnl in jnls:
+        for line in jnl.lines:
+            if line.nominal == "prepayments":
+                prepayment_balance += line.amount
+            if line.nominal == new.nominal:
+                nominal_balance += line.amount
+    assert prepayment_balance == 0
+    assert nominal_balance == 0

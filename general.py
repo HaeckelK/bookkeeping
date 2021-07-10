@@ -68,6 +68,7 @@ def create_prepayment_journal(new_prepayment: NewPrepayment, periods: Dict[int, 
     date = periods[period].date_start
 
     release_amount = int(new_prepayment.amount / new_prepayment.periods)
+    balancing_amount = new_prepayment.amount - release_amount * new_prepayment.periods
 
     jnl = GLJournal(jnl_type="ppmt",
                     lines=[GLJournalLine(nominal="prepayments", amount=new_prepayment.amount, description=new_prepayment.description,
@@ -76,13 +77,18 @@ def create_prepayment_journal(new_prepayment: NewPrepayment, periods: Dict[int, 
                                          transaction_date=date)])
     jnls.append(jnl)
     
-    for _ in range(new_prepayment.periods):
+    for i in range(new_prepayment.periods):
         period += 1
         date = periods[period].date_start
+        if i != 0:
+            amount = release_amount
+        else:
+            amount = release_amount + balancing_amount
+
         jnl = GLJournal(jnl_type="ppmt",
-                        lines=[GLJournalLine(nominal="prepayments", amount=-release_amount, description=new_prepayment.description_recurring,
+                        lines=[GLJournalLine(nominal="prepayments", amount=-amount, description=new_prepayment.description_recurring,
                                             transaction_date=date),
-                            GLJournalLine(nominal=new_prepayment.nominal, amount=release_amount, description=new_prepayment.description_recurring,
+                            GLJournalLine(nominal=new_prepayment.nominal, amount=amount, description=new_prepayment.description_recurring,
                                             transaction_date=date)])
         jnls.append(jnl)
 
