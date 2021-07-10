@@ -1,4 +1,5 @@
 from dataclasses import dataclass, asdict
+from datetime import datetime
 from typing import List, Tuple
 import os
 import re
@@ -259,7 +260,7 @@ class SourceDataParser:
                         raw_line["nominal"], raw_line["description"], raw_line["amount"], raw_line["transaction_date"]
                     )
                 )
-            invoice = GLJournal(header["jnl_type"], lines=lines)
+            invoice = GLJournal(header["jnl_type"], lines=lines, transaction_date=datetime(1999, 12, 31))
             invoices.append(invoice)
         return invoices
 
@@ -299,7 +300,7 @@ class InterLedgerJournalCreator:
                 gl_lines.append(gl_line)
                 transaction_ids.extend(invoice.transaction_ids)
 
-        journal = GLJournal(jnl_type="pi", lines=gl_lines)
+        journal = GLJournal(jnl_type="pi", lines=gl_lines, transaction_date=transaction_date)
         output.append((journal, transaction_ids))
         return output
 
@@ -325,7 +326,7 @@ class InterLedgerJournalCreator:
                 )
                 gl_lines.append(gl_line)
 
-        journal = GLJournal(jnl_type="si", lines=gl_lines)
+        journal = GLJournal(jnl_type="si", lines=gl_lines, transaction_date=transaction_date)
 
         return [journal]
 
@@ -365,7 +366,7 @@ class InterLedgerJournalCreator:
                     transaction_date=transcation_date,
                 ),
             ]
-            journal = GLJournal(jnl_type="bank", lines=gl_lines)
+            journal = GLJournal(jnl_type="bank", lines=gl_lines, transaction_date=datetime(1999, 12, 31))
             journals.append(journal)
         return journals
 
