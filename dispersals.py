@@ -1,5 +1,6 @@
 from typing import List, Dict
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
 
 @dataclass
@@ -23,10 +24,20 @@ class DispersalLog:
 class LedgerTransaction:
     pass
 
-# TODO make ABC, put into ledgers
-class TransactionsLedger:
+# TODO put into ledgers
+class TransactionsLedger(ABC):
+    @abstractmethod
     def list_transactions(self) -> List[LedgerTransaction]:
-        return []
+        """"""
+
+
+class InMemoryTransactionLedger(TransactionsLedger):
+    def __init__(self) -> None:
+        self.transactions = []
+        return
+
+    def list_transactions(self) -> List[LedgerTransaction]:
+        return self.transactions
 
 
 class DispersalsLogger:
