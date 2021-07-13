@@ -98,15 +98,3 @@ def test_in_memory_bank_transactions_batch_id(raw_bank_transactions_clean):
     ledger.add_transactions(raw_bank_transactions_clean)
     # Then two batch ids
     assert len(set([x.batch_id for x in ledger.list_transactions()])) == 2
-
-
-def test_in_memory_bank_transactions_get_unposted_transactions(raw_bank_transactions_clean):
-    # Given a bank ledger with transactions
-    ledger = bank.InMemoryBankLedgerTransactions()
-    ledger.add_transactions(raw_bank_transactions_clean * 2)
-    # Then all transactions unposted to GL
-    assert ledger.get_unposted_transactions() == ledger.list_transactions()
-    # When marking all as posted
-    ledger.mark_all_posted()
-    # Then all transactions marked as posted
-    assert ledger.get_unposted_transactions() == []
