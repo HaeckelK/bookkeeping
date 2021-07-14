@@ -1,4 +1,5 @@
 from dataclasses import dataclass, asdict
+from dispersals import DispersalsLogger
 from typing import List, Tuple
 import os
 import re
@@ -385,11 +386,16 @@ def entity_loop(filename: str, entity_name: str):
     general_ledger = GeneralLedgerTransactions()
     general = GeneralLedger(ledger=general_ledger, chart_of_accounts=InMemoryChartOfAccounts())
     inter_ledger_jnl_creator = InterLedgerJournalCreator()
+    dispersal_logger = DispersalsLogger()
     report_writer = HTMLRawReportWriter(path="data/html", entity_name=entity_name)
 
     print("Bookkeeping Demo")
     print("Load source excel")
     data_loader.load()
+
+    print("Configuring Dispersal Logger")
+    print("..bank")
+    dispersal_logger.register_ledger("bank", bank_ledger)
 
     for period in range(1, 13):
         print(f"\nCurrent Period: {period}")
@@ -482,13 +488,14 @@ def entity_loop(filename: str, entity_name: str):
 
         print("\nDispersing Bank Ledger to General Ledger")
         # TODO maybe this should only be bank to PL and SL + direct to GL, then from PL and SL to GL
-        bank_transactions = bank.ledger.get_unposted_transactions()
+        bank_transactions = dispersal_logger.undispersed_transactions("bank")
+
         if bank_transactions:
             journals = inter_ledger_jnl_creator.create_bank_to_gl_journals(bank_transactions)
             for journal in journals:
                 general.add_journal(journal)
-                # Hack - needs to only mark items that were just posted
-                bank.ledger.mark_all_posted()
+
+            dispersal_logger.log_dispersal(name="bank", transactions=bank_transactions)    
 
         print("\nPosting GL Journals")
         for journal in gl_journals:
