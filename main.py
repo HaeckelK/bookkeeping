@@ -110,13 +110,12 @@ class ExcelSourceDataLoader:
 
     def load_gl_journal_headers(self):
         df = pd.read_excel(self.filename, sheet_name=self.gl_jnl_headers_sheet, index_col=None)
-        df["period"] = df["date"].apply(convert_date_string_to_period)
+        df["period"] = df["transaction_date"].apply(convert_date_string_to_period)
         self.gl_journal_headers = df
         return
 
     def load_gl_journal_lines(self):
         df = pd.read_excel(self.filename, sheet_name=self.gl_jnl_lines_sheet, index_col=None)
-        df["period"] = df["transaction_date"].apply(convert_date_string_to_period)
         df["amount"] = df["amount"] * 100
         df = df.astype({"amount": "int32"})
         df.insert(0, "line_id", range(0, 0 + len(df)))
@@ -253,11 +252,12 @@ class SourceDataParser:
         invoices = []
         for header in headers:
             raw_lines = [x for x in all_lines if x["header_id"] == header["id"]]
+            transaction_date = header["transaction_date"]
             lines = []
             for raw_line in raw_lines:
                 lines.append(GLJournalLine(raw_line["nominal"], raw_line["description"], raw_line["amount"]))
             # TODO assumes final line of journal has a date that is correct for all lines
-            invoice = GLJournal(header["jnl_type"], lines=lines, transaction_date=raw_line["transaction_date"])
+            invoice = GLJournal(header["jnl_type"], lines=lines, transaction_date=transaction_date)
             invoices.append(invoice)
         return invoices
 
@@ -403,7 +403,8 @@ def entity_loop(filename: str, entity_name: str):
         period_sales_invoice_headers = filter_by_period(data_loader.sales_invoice_headers, period)
         period_sales_invoice_lines = filter_by_period(data_loader.sales_invoice_lines, period)
         period_gl_journal_headers = filter_by_period(data_loader.gl_journal_headers, period)
-        period_gl_journal_lines = filter_by_period(data_loader.gl_journal_lines, period)
+        # Passing all journal lines, as header is filtered and header <-> lines join will remove lines not in period
+        period_gl_journal_lines = data_loader.gl_journal_lines
 
         parser.register_source_data(
             bank=period_bank,
